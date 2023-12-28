@@ -12,7 +12,7 @@ This course provides policy analysis PhD students with practical skills and tool
 | Week | Date     | Day       | Slides                |   Articles     | Code                          | Resources |
 |------|----------|-----------|-----------------------|----------------|-------------------------------|------------------|
 | 1    | 1/8      | Monday    | [Analysis Planning]|  |                          | [Packages, Data Types, & Data Manipulations]| ROS: Appendix A and HWT: Chapter 1 - 2  |
-| 1    | 1/10     | Wednesday | [Version Control]     |  [Tong, 2019](readings/week_1/Tong, 2019)            | [Functions, Conditionals, & Loops]                              |
+| 1    | 1/10     | Wednesday | [Version Control]     |  [Tong, 2019](readings/week_1/Tong, 2019.pdf)            | [Functions, Conditionals, & Loops]                              |
 | 2    | 1/15     | Monday    | [Sourcing Data]       |                          | [Webscrapping]<br>[Census API]   | ROS:Chapter 16 |
 | 2    | 1/17     | Wednesday | [Code Reviews]        |  [Knox, Lowe, & Mummolo, 2020]                        |                               |
 | 3    | 1/22     | Monday    | [Data Processing]     |                          | [Recoding]<br>[Regex]<br>[Geocoding]| ROS:Chapter 12           |
