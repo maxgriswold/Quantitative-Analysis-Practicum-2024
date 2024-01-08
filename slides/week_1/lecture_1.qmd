@@ -1,0 +1,377 @@
+---
+title: "Lecture 1: Planning an Analysis"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: January 1, 2024
+
+format: 
+  revealjs:
+    logo: prgs.png
+    css: logo.css
+    slide-number: true
+    show-slide-number: all
+    footer: "Pardee RAND"
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+editor: visual
+reference-location: section
+---
+
+## The purpose of this class
+
+::: fragment
+-   Most researchers learn to conduct quantitative analyses through apprenticeship.
+:::
+
+::: fragment
+-   However, we can do better analyses if we follow a set of building blocks and interrogate our research designs.
+:::
+
+::: fragment
+-   The purpose of this class is to learn skills to improve our analyses and to practice doing an analysis of our own.
+:::
+
+## Learning objectives
+
+By the end of the quarter, you should be able to:
+
+::: fragment
+-   Evaluate the strength and weaknesses of a quantitative research design.
+:::
+
+::: fragment
+-   Provide effective feedback and comments to other researchers on their research design.
+:::
+
+::: fragment
+-   Implement a exploratory or causal analysis using R code.
+:::
+
+## Course format
+
+::: columns
+::: {.column width="50%"}
+::: fragment
+Lecture days:
+
+-   Learn skills and resources to execute a research design.
+-   Learn how to use R to conduct an analysis.
+:::
+:::
+
+::: {.column width="50%"}
+::: fragment
+Workshop days:
+
+-   Share our code in small groups.
+-   Present results from interim work.
+-   Discuss strengths and weakness of published papers.
+:::
+:::
+:::
+
+## Class resources
+
+::: fragment
+[Class Github page](https://github.com/maxgriswold/Quantitative-Analysis-Practicum-2024)\
+\
+:::
+
+::: columns
+::: {.column width="50%"}
+::: fragment
+![Gelman, Hill, and Vehtari, 2022](./figs/ghv_cover.png){.relative bottom="0" width="200" height="300" right="0"}
+:::
+:::
+
+::: {.column width="50%"}
+::: fragment
+![Blair, Coppock, and Humphreys, 2023](./figs/bch_cover.jpg){.relative bottom="0" width="200" height="300" right="-225"}
+:::
+:::
+:::
+
+## Planning an analysis
+
+::: columns
+::: {.column width="33%"}
+::: fragment
+**Robustness:** \
+Will my research design provide a reliable answer?
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+**Feasability:** \
+Is my research question answerable given my constraints?
+:::
+:::
+
+
+::: {.column width="33%"}
+::: fragment
+**Relevancy:** \
+Is this a meaningful question to ask and who is the audience?
+:::
+:::
+:::
+
+::: fragment
+\
+\
+Relevancy is particularly important for policy analysis!
+:::
+
+## Robustness 
+
+::: fragment
+- An analysis is only useful if the results are reliable (unbiased and precise).
+:::
+
+::: fragment
+- Our research design determines how much trust we can place in the estimates we develop.
+:::
+
+::: fragment
+- To determine if our design is robust, we start with a theory of how the world is working.
+:::
+
+::: fragment
+- For an exploratory analysis, we need to use theory to think critically about measurement. For a causal analysis, we also need to think about the research design.
+:::
+
+## Robustness - Generating a theory
+
+Causal pathway diagrams allow us to visualize our theory and begin to develop a design plan.
+
+::: {.columns}
+
+::: {.column width="60%"}
+::: fragment
+![](./figs/dag_theory.svg)
+:::
+:::
+
+::: {.column width="40%"}
+
+::: fragment
+::: {style="font-size: 75%;"}
+- We want to know how D effects Y.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+- We might also be interested in how M changes the effect of D.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+- We need to remove X from our model.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+- We need to make sure we don't condition on K.
+:::
+:::
+
+:::
+
+:::
+
+## Robustness - Generating a theory
+
+![](./figs/dag_ex3.png){.absolute bottom="0" width="800" height="600" right="150"}
+
+## Robustness - Generating a theory
+
+![](./figs/dag_ex2.png){.absolute bottom="100" width="600" height="400" right="300"}
+
+## Robustness - Testing a theory
+
+::: {style="font-size: 75%;"}
+Using our theory, we can try to determine an accurate data strategy (measurement) and an answer strategy (design) to test our research question. 
+::: 
+
+::: fragment
+![](./figs/mida.svg){.absolute width="600" right="550"}
+:::
+
+::: fragment
+![](./figs/dag_theory.svg){.absolute width="650" right="-50" bottom="50"}
+:::
+
+
+## Feasibility
+
+::: fragment
+-   Our research questions need to be scoped so we can answer them given available time and funding.
+:::
+
+::: fragment
+-   To determine if our question is feasible, we need to use project management tools to evaluate if our time and resources will be enough to meet the needs of the project.
+:::
+
+::: fragment
+-   Alternatively, we can scope our research question to fit our available resources
+:::
+
+## Feasibility - Plan out the steps
+
+Try working back from then end of the study (the estimate) to the necessary methods and data needed to obtain that result.
+
+::: fragment
+![](./figs/result_ex.jpg){.absolute bottom="50" right="350"}
+:::
+
+## Feasibility - Plan out the steps
+
+Flowcharts can be used to plan out analysis steps and also serve as a useful rhetorical tool.
+
+::: fragment
+![](./figs/flowchart_ex.png)
+:::
+
+## Feasibility - Plan out the steps
+
+![](./figs/simpler_flowchart.png)
+
+
+## Feasibility - Planning out time
+
+Gantt charts provide an intuitive way to plan out timing.
+
+![](./figs/gantt_ex.png){.absolute bottom="50" right="150" width="840" height="480"}
+
+## Feasibility - Planning out budget
+
+Use a a [budget estimator](https://randus.sharepoint.com/:x:/r/research/rfo/_layouts/15/Doc.aspx?sourcedoc=%7BF2E4FDF3-5589-4165-8C5E-E18ABE5ABE98%7D&file=estimator-tool.xlsm&action=default&mobileredirect=true&DefaultItemOpen=1) adapted to your schedule and products.
+
+![](./figs/budget_ex.png)
+
+## Feasibility - Scoping questions
+
+::: fragment
+::: {style="font-size: 50%;"}
+*If you think about it, specificity is also an act of shrewdness. A survey of 40 years of literature is vulnerable to all kinds of objections*
+
+*The subject of "Gealogy," for instance, is much too broad a topic. "Vulcanology" as a branch of geology, is still too comprehensive. "Volcanoes in Mexico" might be developed into a good but superficial paper. However, a further limitation to "The History of Popocateptl" (which one of Cortéz's conquistadores probably climbed in 1519 and which erupted violently as late as 1702) would make for a more valuable study. Another limited topic, spanning fewer years, would be "The Birth and Apparent Death of Paricutin"*
+
+*Here, I would suggest the last topic, but only if the \[PhD\] candidate really says all there is to say about that damned volcano.*
+
+:::
+
+::: {style="font-size: 50%; text-align: right;"}
+-Eco, 1977
+:::
+:::
+
+::: fragment
+- Limit the geography or time-periods of the study.
+:::
+
+::: fragment
+- Study less outcomes.
+:::
+
+::: fragment
+- Use a simpler method.
+:::
+
+::: fragment
+- Stratify fewer variables.
+:::
+
+## Relevancy - Generating questions
+
+Figuring out impactful research questions seems to be an art; here's some starting points I've found useful:
+
+::: fragment
+- Be an informed citizen and policy observer.
+:::
+
+::: fragment
+- Look out for methodological shortcomings in previous work.
+:::
+
+::: fragment
+- Ask for feedback on ideas constantly [<span style="color:#fc8d62">(and not just from researchers)</span>]{.fragment}
+:::
+
+
+## Relevancy - Generating impact
+
+Think critically about who will care about the results and how the results will be used:
+
+::: fragment
+- Who is the <span style="color:#fc8d62;">audience</span> for the study's results?
+:::
+
+::: fragment
+- How will a <span style="color:#e78ac3;">decision-maker</span> use these results?
+:::
+
+::: fragment
+- What are the <span style="color:#8da0cb;">policy-levers</span> available to the decision-maker?
+:::
+
+## Relevancy - Disseminating results
+
+Your results are only useful if they get to the right audience. Start thinking about how your results will be disseminated at the beginning of your project!
+
+::: fragment
+- Start writing up your research article at the beginning. Good writing takes time.
+:::
+
+::: fragment
+- Think through how you'll describe results if the study's hypothesis is confirmed. But also think through how the results will be useful if the hypothesis is rejected.
+:::
+
+::: fragment
+- Set up multiple plans to disseminate results beyond a research article.
+:::
+
+## Next class
+
+For class on Wednesday, please prepare the following:
+\
+
+::: columns
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 60%;"}
+- A short elevator-pitch for your research
+  + No longer than 1-2 minutes.
+  + What is your research question?
+  + What data will you use to answer your question?
+  + What research design do you plan to use?
+  + Who will use the results of your analysis?
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 60%;"}
+- Read the [Tong, 2019](https://github.com/maxgriswold/Quantitative-Analysis-Practicum-2024/blob/main/readings/week_1/tong_2019.pdf) paper.
+  + What arguments did you find convincing/unconvincing and why?
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 60%;"}
+- Download [Rstudio](https://posit.co/download/rstudio-desktop/) and [GitHub desktop](https://desktop.github.com/).
+  + You might need to ask IS for permission to install these programs.
+  + Try loading your data into R and begin investigating your dataset.
+:::
+:::
+:::
+
+:::
