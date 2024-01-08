@@ -4,17 +4,15 @@ author: Max Griswold
 institute: Pardee RAND Graduate School
 date: January 1, 2024
 
-format: 
-  revealjs:
+format:
+  revealjs: 
     logo: prgs.png
     css: logo.css
     slide-number: true
     show-slide-number: all
     footer: "Pardee RAND"
-    chalkboard: 
-      theme: chalkboard
-      buttons: false
-editor: visual
+    embed-resources: true
+latex-tinytex: false 
 reference-location: section
 ---
 
