@@ -2,16 +2,20 @@
 title: "Lecture 1: Planning an Analysis"
 author: Max Griswold
 institute: Pardee RAND Graduate School
-date: January 1, 2024
+date: January 8, 2024
 
 format:
+  html: 
+    embed-resources: true
   revealjs: 
     logo: prgs.png
     css: logo.css
     slide-number: true
     show-slide-number: all
     footer: "Pardee RAND"
-    embed-resources: true
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
 latex-tinytex: false 
 reference-location: section
 ---
