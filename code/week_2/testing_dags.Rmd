@@ -1,0 +1,227 @@
+---
+title: "Simulate Casual Pathway Diagrams"
+author: "Max Griswold"
+date: "2024-01-09"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r knitr_options}
+
+set.seed(9487565)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE, error = FALSE)
+
+```
+
+## Introduction
+Causal pathway diagrams can be a great tool to translate a working theory into a visual representation. However, it is not always clear how we can then use these representations to then design a research study. 
+
+This document aims to demonstrate how we can use statistical simulation to better understand causal pathway diagrams and use them to generate research designs. The critical aspect of these diagrams for inference is blocking pathways from treatment (e.g., policy intervention) to a desired outcome. If we can block the right paths, either by selecting the right research design or adjusting for the right variables, then we can identify the causal effect of a policy.
+
+I'll start with some basic examples which are purely theoretical to show the general idea, then build towards some more complicated examples based on real applications. 
+
+To develop some of these examples, I refered to  ["Causal Inference: The Mixtape"](https://mixtape.scunning.com/03-directed_acyclical_graphs) by Scott Cunningham, examples by [Carlos Cinelli](https://carloscinelli.com/) at the University of Washington, and ["Research Design in the Social Sciences"](https://book.declaredesign.org/) by Graeme Blair, Alexander Coppock, and Macartan Humphreys.
+
+```{r setup, include=FALSE}
+
+# Load a few packages to visualize directed acyclic graphs in R
+library(dagitty)    # Syntax for DAGs
+library(ggplot2)    # Grammar of graphics package for plotting
+library(ggdag)      # Extension to ggplot which plots DAGs
+library(texreg)     # Easy, nice looking tables in html
+library(data.table) # Easier dataframe manipulations
+
+# Create a wrapper for my preferred style of DAG:
+plot_dag <- function(dag){
+  
+  # If we have unmeasured confounding, then create a plot
+  # which uses dashed lines
+  
+  if ("linetype" %in% names(dag$data)){
+    ggplot(dag, aes(x = x, y = y, xend = xend, yend = yend)) +
+      geom_dag_node(color = "white") +
+      geom_dag_edges(edge_colour = "#252525", edge_width = 1.2, aes(edge_linetype = linetype)) +
+      geom_dag_text(color = "#252525", size = 10) +
+      theme_dag(base_family = "serif")
+  }else{
+    ggplot(dag, aes(x = x, y = y, xend = xend, yend = yend)) +
+      geom_dag_node(color = "white") +
+      geom_dag_edges(edge_colour = "#252525", edge_width = 1.2) +
+      geom_dag_text(color = "#252525", size = 10) +
+      theme_dag(base_family = "serif")
+  }
+  
+
+  
+}
+
+gen_table <- function(res){
+  htmlreg(res, stars = NULL, doctype = F, html.tag = F, head.tag = F, body.tag = F,
+        include.adjr = F, include.rsquared = F, include.rmse = F, include.nobs = F,
+        caption = "", custom.model.names = "Y")
+}
+
+```
+
+## Theoretical examples
+
+We'll start with the most basic example: X causes Y and there are no other variables. 
+
+```{r no_confound, echo = F, fig.width = 3, fig.height = 1, fig.align = "center"}
+
+# I'm specifying coordinates to make the DAG fit into a smaller amount of space.
+no_confound <- dagify(Y ~ X, 
+                      coords = list(x = c(X = 0, Y = 1), 
+                                    y = c(X = 0, Y = 0)))
+
+# Turn the DAG into a dataframe for ggplot:
+no_confound <- tidy_dagitty(no_confound)
+
+plot_dag(no_confound)
+
+```
+
+We can model this in R using probability functions to generate a dependency, then see how well a basic model design (an adjusted linear regression) can recover the effect of X on Y. In the below example, we specify that a one-unit increase in X should cause a change of 2 in Y.
+
+```{r simulate_no_confound_dag}
+
+# Our population will contain 1000 units
+n <- 1000
+
+x <- rnorm(n)
+
+# Y depends only on X
+y <- x*2
+
+df <- data.frame(x = x, y = y)
+
+# Let's run a linear model and plot the slope:
+results <- lm(y ~ x, data = df)
+
+```
+
+```{r, echo = F, results = 'asis'}
+gen_table(results)
+```
+
+From the above regression table, we can see we're perfectly able to capture the causal effect, which should be unsurprising. We can also add some noise to the model,for unmeasured confounding affecting the outcome and the treatment:
+
+
+```{r with_noise, echo = F, fig.width = 5, fig.height = 5, fig.align = "center"}
+
+# I'm specifying coordinates to make the DAG fit into a smaller amount of space.
+with_noise <- dagify(Y ~ X, 
+                     X ~ U1,
+                     Y ~ U2,
+                    coords = list(x = c(X = 0, Y = 1, U1 = 0, U2 = 1), 
+                                  y = c(X = 0, Y = 0, U1 = 1, U2 = 1)))
+
+# Turn the DAG into a dataframe for ggplot. I'm now using "%>%" which
+# passes the results from line 108 as an argument to the next function.
+with_noise <- tidy_dagitty(with_noise)
+
+# Add an indicator for edge linetypes:
+with_noise$data$linetype <- ifelse(grepl("U", with_noise$data$name), "dashed", "solid")
+
+plot_dag(with_noise)
+```
+
+Let's see what happens now if we run the same model as before without including these unmeasured variables
+
+
+```{r simulate_with_noise_dag}
+
+n <- 1000
+
+u1 <- rnorm(n, mean = 3, sd = 1)
+u2 <- rnorm(n, mean = 2, sd = 2)
+
+# Note how u1 and u2 are now part of the definition for X and Y.
+x <- rnorm(n) + u1
+
+y <- x*2 + u2
+
+df <- data.frame(x = x, y = y)
+
+results <- lm(y ~ x, data = df)
+
+```
+\
+```{r, echo = F, results = 'asis'}
+gen_table(results)
+```
+\
+Without including these controls, we still are able to recover a causal effect fairly accurately, though now there's a little bit of noise. If we had someway of measuring U1 or U2, we could add these to the model to make our estimate more precise. Now, let's instead assume one of the unmeasured variables effects both treatment and the outcome:
+\
+
+```{r confounder, echo = F, fig.width = 5, fig.height = 5, fig.align = "center"}
+
+confounder <- dagify(Y ~ X, 
+                     X ~ U1,
+                     Y ~ U2,
+                     Y ~ U1,
+                    coords = list(x = c(X = 0, Y = 1, U1 = 0, U2 = 1), 
+                                  y = c(X = 0, Y = 0, U1 = 1, U2 = 1)))
+
+confounder <- tidy_dagitty(confounder)
+
+confounder$data$linetype <- ifelse(grepl("U", confounder$data$name), "dashed", "solid")
+
+plot_dag(confounder)
+
+```
+
+```{r simulate_confounder_dag}
+
+n <- 1000
+
+u1 <- rnorm(n, mean = 3, sd = 1)
+u2 <- rnorm(n, mean = 2, sd = 2)
+
+x <- rnorm(n) + u1
+
+y <- x*2 + u2 + u1
+
+df <- data.frame(x = x, y = y)
+
+results <- lm(y ~ x, data = df)
+
+```
+\
+
+```{r, echo = F, results = 'asis'}
+gen_table(results)
+```
+\
+
+Now, the results are much different - our estimated effect is 25% higher than the true effect. This is a substantial amount of bias. If we include U1 in the model (or choose a research design that blocks U1), we can still recover the causal effect.
+\
+\
+
+```{r simulate_controls_dag}
+
+n <- 1000
+
+u1 <- rnorm(n, mean = 3, sd = 1)
+u2 <- rnorm(n, mean = 2, sd = 2)
+
+x <- rnorm(n) + u1
+
+y <- x*2 + u2 + u1
+
+df <- data.frame(x = x, y = y)
+
+# Adding U1 into the model:
+results <- lm(y ~ x + u1, data = df)
+
+```
+\
+
+```{r, echo = F, results = 'asis'}
+gen_table(results)
+```
+\
+
+Results are again much closer to the true effect, though with a bit less precision. 
