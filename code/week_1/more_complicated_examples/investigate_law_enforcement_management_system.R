@@ -60,7 +60,7 @@ lemas_2020[, year := 2020]
 lemas_2020[lemas_2020 == -8] <- NA
 lemas_2020[lemas_2020 == -9] <- NA
 
-# Recodes based off codebook provided by ICPSR (see folder for LEMAS)
+# Recodes based off codebook provided by ICPSR
 lemas_2020[, community_feedback_crime_problems := mapvalues(community_feedback_crime_problems, c(1, 2), c(1, 0))]
 lemas_2020[, community_feedback_resources := mapvalues(community_feedback_resources, c(1, 2), c(1, 0))]
 lemas_2020[, community_feedback_agency_performance := mapvalues(community_feedback_agency_performance, c(1, 2), c(1, 0))]
@@ -92,14 +92,10 @@ common_zip <- lemas_2020[lemas_id %in% common_lea, .(zip_code, lemas_id)]
 hold_vars <- c("lemas_id", "year", "num_fte_staff", 
                "community_policing_plan", "community_policing_unit")
 
-# Hold onto variables which exist in both datasets
 lemas_2000_sub <- lemas_2000[lemas_id %in% common_lea, hold_vars, with = F]
 lemas_2020_sub <- lemas_2020[lemas_id %in% common_lea, hold_vars, with = F]
 
-# Combine the two series
 lemas_change <- rbind(lemas_2000_sub, lemas_2020_sub)
-
-# Reshape dataset wide
 lemas_change <- dcast(lemas_change, lemas_id ~ year, value.var = hold_vars[3:5])
 
 lemas_change <- setDT(join(lemas_change, common_zip, by = "lemas_id", type = "left"))
@@ -107,7 +103,7 @@ lemas_change <- setDT(join(lemas_change, common_zip, by = "lemas_id", type = "le
 lemas_change[, change_community_policing_unit := community_policing_unit_2020 - community_policing_unit_2000]
 lemas_change[, change_community_policing_plan := community_policing_plan_2020 - community_policing_plan_2000]
 
-# Make variable values readable within the figure
+# Simplify reporting in figure
 lemas_change[, change_community_policing_plan := mapvalues(change_community_policing_plan, -1:1, c("Removed CP plan", "No change", "Made CP plan"))]
 lemas_change[, change_community_policing_unit := mapvalues(change_community_policing_unit, -3:3, 
                                                            c(rep("Less resources", 3), "No change", rep("More resources", 3)))]
@@ -160,8 +156,8 @@ setnames(zip_loc, "ZCTA5CE10", "zcta")
 #Remove leading zeros from zip codes:
 zip_loc[, zcta := as.numeric(zcta)]
 
-# Files won't be a perfect match since census zipcodes (ZCTA) are slightly different
-# than USPS zipcodes in LEMAS. So I grabbed a crosswalk file we can use:
+# Files won't be a perfect match since census zip (ZCTA) are slightly different
+# than USPS zip in LEMAS. So I grabbed a crosswalk file we can use:
 zip_to_zcta <- fread("./data/helper/zip_zcta_cw.csv")
 setnames(zip_to_zcta, "ZIP_CODE", "zip_code")
 

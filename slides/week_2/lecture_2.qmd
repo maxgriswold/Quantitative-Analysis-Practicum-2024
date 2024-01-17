@@ -1,0 +1,366 @@
+---
+title: "Lecture 2: Sourcing analysis data"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: January 17, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: logo.css
+    slide-number: true
+    show-slide-number: all
+    footer: "Pardee RAND"
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Today's lecture
+
+::: fragment
+-   Thinking critically about how your data was generated and sourced can help you anticipate analysis problems.
+:::
+
+::: fragment
+-   Different data sources have relative advantages and disadvantages for analysis purposes.
+:::
+
+
+## Types of data
+
+This is not exhaustive list and it's a broad taxonomy!
+
+::: columns
+::: {.column width="33%"}
+::: fragment
+**Administrative data**
+
+-   Census
+-   Surveillance
+-   Programmatic
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+**Research data**
+
+-   Derived
+-   Surveys
+-   Estimates
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+**Unstructured data**
+
+-   Administrative Records
+-   Consumer/Social media
+-   Convenience samples
+:::
+:::
+:::
+
+## Adminstrative data
+
+::: columns
+::: {.column width="60%"}
+![Change in county population between 2010 and 2020, US Census](./figs/census_pop_change.png)
+:::
+
+::: {.column width="40%"}
+::: fragment
+Maintained by government and NGO providers, collected for a practical purpose.\
+\
+
+Available for a wide range of topics and usually has immediate application for the purpose of policy analyis.
+:::
+:::
+:::
+
+## Adminstrative data - Sources
+
+::: {style="font-size: 75%;"}
+I've found some of the following databases useful during previous research.
+
+::: fragment
+-   Open-data systems
+    -   US National: [HIFLD](https://hifld-geoplatform.opendata.arcgis.com/), [Census](https://data.census.gov/), [BLS](https://www.bls.gov/data/), [Fed data](https://data.gov/), [CRDC](https://civilrightsdata.ed.gov/), [NOAA](https://data.noaa.gov/onestop/)
+    -   US Local: [LA County](https://data.lacounty.gov/), [NYC](https://opendata.cityofnewyork.us/), etc.
+    -   International: [DHS](https://dhsprogram.com/data/available-datasets.cfm), [ILOSTAT](https://ilostat.ilo.org/), [World Bank](https://data.worldbank.org/), [UN](https://data.un.org/datamartinfo.aspx), [Unicef](https://data.unicef.org/), etc.
+:::
+
+::: fragment
+-   Curated repositories
+    -   Population and Demographics: [IPUMS](https://www.ipums.org/)
+    -   Global health: [GHDx](https://ghdx.healthdata.org/)
+    -   Public Opinion: [Pew](https://www.pewresearch.org/download-datasets/)
+    -   Humanitarian data: [HDx](https://data.humdata.org/dataset)
+:::
+:::
+
+## Adminstrative data - Advantages
+
+::: {style="font-size: 75%;"}
+::: fragment
+-   Large sample sizes and frequently longitudinal.
+:::
+
+::: fragment
+-   Usually easily accessible and free.
+    -   However, restricted-use files might be required for particular analyses.
+:::
+
+::: fragment
+-   Usually well documented through codebooks.
+    -   Though, smaller-geography datasets may be missing critical information to understand variable coding.
+:::
+
+::: fragment
+-   There might be additional information on data reliability available through previous research studies.
+:::
+:::
+
+## Adminstrative data - Disadvantages
+
+::: columns
+::: {.column width="40%"}
+::: {style="font-size: 50%;"}
+\
+\
+![](./figs/klm_fig1.png)
+
+Knox, Lowe, Mummolo, 2020
+:::
+:::
+
+::: {.column width="60%"}
+::: fragment
+::: {style="font-size: 50%;"}
+-   Since the data is collected for a particular purpose, there may be selection problems within the data itself. You need to carefully consider the data generating process.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 50%;"}
+-   Large, undocumented changes can occur which compromises the data's reliability (e.g., CMS transition from ICD-9 to ICD-10; FBI transition from UCR to NIBRS; "living data").
+:::
+:::
+
+::: fragment
+::: {style="font-size: 50%;"}
+-   Data can be disorganized or provided in research-unfriendly formats requiring lots of pre-processing.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 50%;"}
+-   Bureaucratic standardization can lead to problems with construct validity (e.g., measuring race/ethnicity in US Census; crime counts).
+:::
+:::
+
+::: fragment
+::: {style="font-size: 50%;"}
+-   May contain substantial missingness since many administrative databases depend on voluntary reporting and coding errors can be frequent.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 50%;"}
+-   For surveys: Susceptible to all usual biases (non-response, desirability bias, recall bias, etc.)
+:::
+:::
+:::
+:::
+
+## Research Data
+
+::: columns
+::: {.column width="40%"}
+::: {style="font-size: 75%;"}
+\
+Maintained by researchers, usually collected to answer specific questions.
+
+ \
+
+Many foundational databases and estimates are available through research articles and are relatively underutilized.
+:::
+:::
+
+::: {.column width="60"}
+::: {style="font-size: 50%;"}
+\
+\
+![](./figs/rand_firearm.png) Cherney, Morral, Schell, Smucker, Hoch, 2022
+:::
+:::
+:::
+
+## Research data - Sources
+
+::: columns
+::: {.column width="50"}
+-   Repositories
+    -   [ICPSR](https://www.icpsr.umich.edu/web/pages/)
+    -   [Harvard Dataverse](https://dataverse.harvard.edu/)
+    -   [Mendeley](https://data.mendeley.com/)
+    -   [RAND](https://www.rand.org/pubs/tools.html)
+    -   [Urban Institute](https://datacatalog.urban.org/)
+:::
+
+::: {.column width="\"50"}
+-   Project-specific estimates:
+    -   [WorldPop](https://www.worldpop.org/datacatalog)
+    -   [Correlates of War](https://correlatesofwar.org/)
+    -   [GDELT](https://www.gdeltproject.org/data.html)
+    -   [GBD](https://www.healthdata.org/research-analysis/gbd)
+    -   [Policy Agendas Project](https://liberalarts.utexas.edu/government/news/feature-archive/the-policy-agendas-project.html)
+:::
+:::
+
+## Research data - Advantages
+
+::: fragment
+-   Datasets can be very specialized and tailored for specific research questions.
+:::
+
+::: fragment
+-   Research estimates can address gaps in administrative data.
+:::
+
+::: fragment
+-   Data is frequently harmonized, well documented, potentially methodologically rigorous, and ready for use.
+:::
+
+## Research data - Disadvantages
+
+::: {style="font-size: 75%;"}
+::: fragment
+-   There is a high degree of subjectivity in how researchers may have coded data or derived estimates. This can require additional legwork to understand how researchers transformed raw sources to published data.
+    -   I have found that contacting the authors usually reveals substantial limitations beyond those discussed in publications.
+:::
+
+::: fragment
+-   Using estimates within your analysis requires a plan for how you will incorporate estimate uncertainty (this also applies to administrative surveys!).
+:::
+
+::: fragment
+-   Research data from papers can often be inaccessible due to the political economy of research. When authors do make data available, it can be costly to obtain (e.g., clinical cohort data).
+:::
+
+::: fragment
+-   Data is often collected for a bespoke purpose and might not translate well to your analysis (e.g., construct validity).
+:::
+:::
+
+## Unstructured data
+
+::: columns
+::: {.column width="60"}
+::: {style="font-size: 50%;"}
+![](./figs/svc_fig3.jpeg) Sudhahar, Veltri, & Cristianini, 2015
+:::
+:::
+
+::: {.column width="40%"}
+::: {style="font-size: 75%;"}
+\
+
+Usually maintained by commercial entities or available through government records.
+
+\
+\
+
+Data is usually not collected for a research purpose.
+:::
+:::
+:::
+
+## Unstructured data - Sources
+
+::: columns
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 75%;"}
+*   Repositories and crowdsourcing
+    -   [Internet Archive](https://archive.org/)
+    -   [OpenStreeteMaps](https://www.openstreetmap.org/)
+    -   [Yelp Open Data](https://www.yelp.com/dataset)
+    -   [Kaggle](https://www.kaggle.com/datasets)
+    -   [DBpedia](https://www.dbpedia.org/)
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 75%;"}
+*   Webscrapping and APIs
+    -   [Youtube API](https://developers.google.com/youtube/v3)
+    -   [Google Maps API](https://developers.google.com/maps/apis-by-platform)
+    -   [Spotify API](https://developer.spotify.com/documentation/web-api)
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: fragment
+::: {style="font-size: 75%;"}
+*   Public records
+    -   [Municode](https://library.municode.com/)
+    -   [GovInfo](https://www.govinfo.gov/)
+    -   [National Archives](https://www.archives.gov/)
+    -   [Caselaw Access Project](https://case.law/)
+    -   Public record act requests
+    -   Medical claim records.
+:::
+:::
+:::
+
+:::
+
+## Unstructured data - Advantages
+
+::: fragment
+- Datasets can be rich, containing large samples and detailed indicators.
+:::
+
+::: fragment
+- Can capture information that's extremely timely and comprehensive.
+:::
+
+::: fragment
+- Data is straight from the source and unfiltered, potentially enabling researchers to interpret data under real scenarios and in complex situations.
+:::
+
+## Unstructured data - Disadvantages
+
+::: {style="font-size: 75%;"}
+::: fragment
+- Obtaining data can be extremely costly, either due to the computational resources required or costs involved with using APIs.
+:::
+
+::: fragment
+- In most cases, data is a convenience sample and researchers need to think even more critically about the data generating process. There are many ways for unstructured data to reflect underlying biases due to how the data was collected.
+:::
+
+::: fragment
+- Since data was not collected for research purposes, it can be an uphill battle to get unstructured data into formats suitable for analysis. Substantial work can be required to make this data usable.
+::: 
+
+:::
+
+## By next Wednesday
+
+Create a script that loads your data into R and begin preparing your analysis dataset. Make sure you push your code to the class repository before Wednesday's class so we can start reviewing eachothers code!
+
+## Next class
+
+The next lecture will cover techniques for data cleaning and data transformations. To help you get started before then, I have added several R scripts from previous project work which demonstrates ways to clean your data (recoding, merges, and transformations). If you run into difficulties loading your data into R, please reach out for help.
+
