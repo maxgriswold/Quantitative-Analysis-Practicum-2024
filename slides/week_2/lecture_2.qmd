@@ -358,7 +358,7 @@ Data is usually not collected for a research purpose.
 
 ## By next Wednesday
 
-Create a script that loads your data into R and begin preparing your analysis dataset. Make sure you push your code to the class repository before Wednesday's class so we can start reviewing eachothers code!
+Create a script that loads your data into R and begin preparing your analysis dataset. Make sure you push your code to the class repository before Wednesday's class so we can start reviewing each others' code!
 
 ## Next class
 

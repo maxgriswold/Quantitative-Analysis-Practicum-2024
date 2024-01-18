@@ -99,6 +99,7 @@ df <- data.frame(x = x, y = y)
 
 # Let's run a linear model and plot the slope:
 results <- lm(y ~ x, data = df)
+results
 
 ```
 
