@@ -1,0 +1,5 @@
+install.packages("haven")
+library("haven")
+dataframe <- read_dta('C:/Users/yperezd/OneDrive - RAND Corporation/Desktop/Thesis/Paper2/Data/ENCODAT_2016_2017_Individual.dta')
+install.packages("srvyr")
+library("srvyr")
