@@ -67,4 +67,38 @@ LAyrs <- subset.data.frame(LAyrs, program==3)
 nrow(LAyrs)
 # note: count of rows used to confirm that non-LA zips were removed. LAyrs reduced from 3321 to 1651 rows
 
-## Create line graph of voucher usage by zip code in LA from 2017 t0 2022
+## load package for graphing
+library(ggplot2)
+library(dplyr)
+
+## Create line graph of voucher usage by zip code in LA from 2017 t0 2022 using select zips
+selected_zipcodes <- c("90001", "90002", "90003")
+filtered_data <- LAyrs[LAyrs$ZIP %in% selected_zipcodes, ]
+
+# Aggregate the data
+agg_data <- filtered_data %>%
+  group_by(year, ZIP) %>%
+  summarize(total_units = sum(total_units))
+
+# Create the multiline chart
+ggplot(agg_data, aes(x = year, y = total_units, color = ZIP, group = ZIP)) +
+  geom_line() +
+  labs(title = "Housing Voucher Usage by Selected Zip Codes (2017-2019)",
+       x = "Year",
+       y = "Number of Vouchers Used",
+       color = "Zip Code") +
+  theme_minimal()
+
+## Create line graph of voucher usage by zip code in LA from 2017 t0 2022 using all zips
+agg_data <- LAyrs %>%
+  group_by(year, ZIP) %>%
+  summarize(total_units = sum(total_units))
+
+# Create the multiline chart for all zip codes
+ggplot(agg_data, aes(x = year, y = total_units, color = ZIP, group = ZIP)) +
+  geom_line() +
+  labs(title = "Housing Voucher Usage by All Zip Codes (2017-2019)",
+       x = "Year",
+       y = "Number of Vouchers Used",
+       color = "Zip Code") +
+  theme_minimal()
