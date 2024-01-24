@@ -1,0 +1,104 @@
+---
+title: "545_Quant_Week_3_DataPrep"
+author: "Hye Min Park"
+date: "1/24/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r package, include=FALSE}
+library(data.table)
+library(plyr)
+
+```
+
+## about my data
+
+#Weather variables
+source: cal-adapt <https://cal-adapt.org/tools/extreme-heat/>
+
+#Extreme Heat Days & Warm Nights
+Number of Extreme Heat Days per Year when daily maximum temperature is above 103.9 °F 
+Number of Warm Nights per Year when daily minimum temperature is above 67.2 °F
+
+Datasets created from LOCA downscaled CMIP5 climate projections for Cal-Adapt tools. These currently include the modeled annual variability envelope (maximum and minimum from range of annual average values from all 32 GCMs); precalculated data tables of extreme heat counts for California counties for 4 priority models and 2 scenarios (RCP 4.5 and RCP 8.5)
+
+RCP 4.5 is described by the Intergovernmental Panel on Climate Change (IPCC) as a moderate scenario in which emissions peak around 2040 and then decline. RCP 8.5 is the highest baseline emissions scenario in which emissions continue to rise throughout the twenty-first century.
+
+
+#1. Historical CDD data
+
+
+```{r read data}
+setwd("C:/Users/hmpark/PATH/Git/hm/Quantitative-Analysis-Practicum-2024/student_work/HyeMin")
+
+#load historical cooling degree days data
+cdd_avg_his = read.csv("LACountyTemp/cdd_year_ens32avg_historical.csv")
+setDT(cdd_avg_his) #convert data frame to data table
+cdd_avg_his[, year := as.numeric(substr(time, 1, 4))] #extract year from time and convert chr to numeric
+cdd_avg_his[,time:=NULL] #delete the time column
+cdd_avg_his[, .(cdd_avg_hist=cdd_year_ens32avg_historical , year)] # change column name
+colnames(cdd_avg_his)[1] <- "cdd_avg_hist"
+
+head(cdd_avg_his)
+```
+
+
+#2. Future CDD data
+
+```{r future data}
+#repeat this for other data sets
+
+cdd_avg_rcp45 = read.csv("LACountyTemp/cdd_year_ens32avg_rcp45.csv")
+cdd_avg_rcp85 = read.csv("LACountyTemp/cdd_year_ens32avg_rcp85.csv")
+setDT(cdd_avg_rcp45)
+setDT(cdd_avg_rcp85)
+
+cdd_avg_rcp45[, year := as.numeric(substr(time, 1, 4))] #extract year from time and convert chr to numeric
+cdd_avg_rcp45[,time:=NULL] #delete the time column
+
+cdd_avg_rcp45[, .(cdd_avg_rcp45 = cdd_year_ens32avg_rcp45 , year)] # change column name
+
+
+cdd_avg_rcp85[, year := as.numeric(substr(time, 1, 4))] #extract year from time and convert chr to numeric
+cdd_avg_rcp85[,time:=NULL] #delete the time column
+
+cdd_avg_rcp85[, .(cdd_avg_rcp85=cdd_year_ens32avg_rcp85 , year)] # change column name
+
+#joing rcp45 and 85
+cdd_future <- merge(cdd_avg_rcp45,cdd_avg_rcp85, by="year")
+colnames(cdd_future)[2] <- "cdd_avg_rcp45"  
+colnames(cdd_future)[3] <- "cdd_avg_rcp85"  
+head(cdd_future)
+
+```
+#load electricity load data
+
+```{r load data}
+load_w = read.csv("ElectricityByCounty.csv")
+setDT(load_w)
+load_w[,Sector:=NULL] #delete the column
+load_w[,Total Usage:=NULL]
+load <- melt(load_w, variable.name="year", value.name = "consumption") #wide to long
+load[,year:=as.numeric(gsub("X","",year))] #remove X prefix and convert it to numeric
+head(load)
+
+```
+
+Sum across the counties
+
+```{r load data}
+CA_load <- load[, sum(.SD$consumption), by="year"]
+colnames(CA_load)[2] <- "total_load" 
+head(CA_load)
+```
+
+#Merge historical cdd with load
+```{r merge historical data}
+historical <- merge(CA_load,cdd_avg_his, by="year")
+plot(x=historical$cdd_avg_his,y=historical$CA_load)
+```
+
