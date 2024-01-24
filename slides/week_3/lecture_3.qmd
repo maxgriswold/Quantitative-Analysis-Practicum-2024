@@ -1,0 +1,311 @@
+---
+title: "Lecture 3: Data processing and transformations"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: January 22, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: logo.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    footer: "Pardee RAND"
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## The plan for today
+
+
+::: fragment
+-   Discuss a general framework for data preparation.
+:::
+
+::: fragment
+-   Provide a grab bag of tips and tricks for data manipulation.
+:::
+
+::: fragment
+-   Briefly cover linear transformations and rescaling variables
+:::
+
+## Make sure to upload your project code to the repo <span style="color:#b90E0A">before Wednesday's class</span>!{.center}
+
+## R Tools
+
+![](./figs/base_r.png){.absolute  width="300" height="300" bottom="200"}
+![](./figs/dplyr.png){.absolute bottom="200" width="300" height="300" right="350"}
+
+![](./figs/datatable.png){.absolute bottom="200" width="300" height="300" right="0"}
+
+## Split - Apply - Combine
+
+Nearly all data processing is either a split-apply-combine, merge, or a transformation.
+
+![](./figs/split_apply_combine.png){width="120%" fig-align="center"}
+
+## <span style="color:#b90E0A">Split</span> - Apply - Combine
+
+
+::: columns
+::: {.column width="63%"}
+::: fragment
+::: {style="font-size: 60%;"}
+Subset your data to certain rows or columns.
+:::
+:::
+
+:::fragment
+```{r echo = T, eval = F}
+library(data.table)
+df[1:5,]
+df[state == "Texas",]
+df[patient_age >= 40 & patient_age < 45,]
+
+```
+:::
+
+:::fragment
+::: {style="font-size: 60%;"}
+Use variables and convenience functions for more complex operations.
+:::
+:::
+
+:::fragment
+```{r echo = T, eval = F}
+
+# Find possible cardiologists
+df[speciality %like% "cardiology",]
+
+# Summarize data in MENA countries
+middle_east <- fread('mena_locs.csv')
+df[country %in% middle_east$locs,]
+
+# Hold onto columns which might be 
+#corporate landlords:
+df[grepl(".*inc|.*llc", landlord_name),]
+
+```
+:::
+
+:::
+
+::: {.column width="33%"}
+::: {layout="[[-1], [1], [-1]]"}
+![Wickham, 2011](./figs/wickham_split.png)
+:::
+:::
+
+:::
+
+## Split - <span style="color:#b90E0A">Apply - Combine</span>
+
+```{r echo = T, eval = F}
+
+# Calculate crime rate in each state
+df[, crime_rate := (.SD$crime_count/.SD$population)*1e4, by = "state"]
+
+# Find self-rated health score by disease condition for living sample
+df[ever_mort == F, mean(.SD$srh), by = "condition"]
+
+# Look at distribution of electricity demand sims by climate policy
+df[, quantile(.SD$sim_demand, probs = seq(0, 1, 0.1)), by = "policy"]
+
+# Count the number of disabled individuals in dataset by industry:
+df[disability == T, .N, by = "industry"]
+
+# Recode ISCO-08 occupational categories
+library(plyr)
+old <- c("1111", "22", "132")
+new <- c("Legislators", "Health Professionals", "Manufacturing")
+df[, occ_name := mapvalues(isco, old, new)]
+
+```
+
+## Data formatting
+
+Keep data in long-format. This tends to make processing faster and easier! This format is also better for parallelization.
+
+![](./figs/long_wide.png){width="50%" fig-align="center"}
+
+::: fragment
+You made need to reshape wide again for analyses.
+:::
+
+## Data formatting
+
+```{r echo=T, eval=T, warning=F}
+library(data.table)
+df <- setDT(expand.grid(country = c("x", "y", "z"),
+                  year = c("1960", "1970", "2010")))
+
+df[, metric := c(rep(10, 3), rep(20, 3), rep(30, 3))]
+
+print(df)
+```
+
+## Data formatting
+```{r echo=T, eval=T, warning=F}
+# Long to wide
+df <- dcast(df, country ~ sprintf("yr%s", year), value.var = "metric")
+print(df)
+
+# Wide to long
+df <- melt(df, "country", variable.name = "year", value.name = "metric")
+df[, year := as.numeric(gsub("yr", "", year))]
+print(df)
+```
+:::
+
+:::
+
+## Merges
+
+Merges can be a critical step for data processing but can be tricky in practice.
+
+![](./figs/merge.png){fig-align="center"}
+
+::: fragment
+::: {style="font-size: 60%;"}
+* For debugging merges, set up a gold standard dataset for anticipated unique units, then merge to that gold standard.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 60%;"}
+* Merging can also be useful for recoding, creating lag/lead variables, or building hierarchical data structures (e.g., adminstrative districts nested in countries).
+:::
+:::
+
+::: fragment
+::: {style="font-size: 60%;"}
+* Fuzzy merging for text data can be difficult. Instead, consider using preprocessing text using regular expressions to improve merges.
+:::
+:::
+
+## Linear Transformations
+
+::: {style="font-size: 75%;"}
+* Linear transformations and rescaling variables can be hugely valuable for data analysis, modeling, and dissemination. 
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+* These transformations do not change model fit but can improve the interpretability of tables and figures. 
+:::
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+* For some models, transformations can improve numerical stability (e.g., regularization, clustering, MCMC)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 75%;"}
+* Next week, we will spend significantly more time discussing nonlinear transformations (e.g., logs, power transformations, etc.) and derived variables (e.g., rates, interaction terms, etc.). 
+:::
+:::
+
+## Linear transformations - Centering
+
+Centering can help with interpreting intercept values in a mode: $$x - mean(x)$$
+
+::: fragment
+```{r echo = T}
+data("trees")
+setDT(trees)
+
+head(trees)
+```
+:::
+
+## Transformations - Centering
+
+```{r echo = T}
+summary(lm(Girth ~ Height, trees))$coefficients
+```
+::: fragment
+\
+\
+```{r echo = T}
+center <- function(x){x - mean(x)}
+summary(lm(Girth ~ center(Height), trees))$coefficients
+```
+:::
+
+## Transformations - Normalizing
+
+Rescaling values to be on similar scales can help with interpreting the relative magnitude of model effects. $$\frac{x - min(x)}{max(x) - min(x)}$$
+
+## Transformations - Normalizing
+
+```{r echo = T}
+summary(lm(Girth ~ Height + Volume, trees))$coefficients
+```
+::: fragment
+\
+```{r echo = T}
+norm <- function(x){(x - min(x))/(max(x) - min(x))}
+
+summary(lm(Girth ~ norm(Height) + norm(Volume), trees))$coefficients
+```
+:::
+
+## Transformations - Standardizing
+
+We can combine these two concepts by using standardization so we can better interpret the intercept and coefficients.
+
+$$\frac{x - mean(x)}{sd(x)}$$ 
+
+## Transformations - Standardizing
+
+```{r echo = T}
+z_score <- function(x){(x - mean(x))/sd(x)}
+
+summary(lm(Girth ~ z_score(Height) + z_score(Volume), trees))$coefficients
+```
+
+## Composite indexes
+
+::: {style="font-size: 75%;"}
+Stakeholders commonly request summary measures or composite scales as way to assess outcomes. However, indexes are rarely useful in applied work and you are likely better off using the composite measures.
+
+::: fragment
+1. Indexes collapse variation and can contain less useful information than composites.
+:::
+
+::: fragment
+2. Indexes can be highly sensitive to assumed weights and can be difficult to interpret.
+:::
+
+::: fragment
+3. Indexes can hide a meaningful underlying relationship with an outcome.
+:::
+
+::: fragment
+However, composite measures can be useful, particularly when the purpose of an analysis is to discover a latent construct (e.g., factor analysis) or if there's a need for dimensional reduction (e.g., PCA).
+:::
+
+:::
+
+## Composite indexes
+
+![](./figs/hdi_components.png){fig-align=center width=70%}
+
+## Composite indexes
+
+![Gelman, Hill, Vehtari, 2022](./figs/gelman_1.png){width=60%}
+
+## Composite indexes
+
+![Gelman, Hill, Vehtari, 2022](./figs/gelman_2.png){fig-align=center width=50%}
+
+
