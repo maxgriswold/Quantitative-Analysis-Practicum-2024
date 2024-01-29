@@ -1,0 +1,41 @@
+---
+title: "Lecture 4: Data Analysis and Descriptive Models"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: January 29, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: logo.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    footer: "Pardee RAND"
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+
+## Bullets
+
+When you click the **Render** button a document will be generated that includes:
+
+-   Content authored with markdown
+-   Output from executable code
+
+## Code
+
+When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
