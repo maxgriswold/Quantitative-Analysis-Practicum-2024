@@ -1,0 +1,492 @@
+---
+title: "Investigate Hours Worked by Income Group"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+date: "2024-01-26"
+urlcolor: blue
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, error = FALSE)
+knitr::opts_knit$set(root.dir = "C:/Users/Griswold/Documents/GitHub/Quantitative-Analysis-Practicum-2024/")
+```
+
+## Introduction
+
+Federal Reserve System Data has consistently shown that the share of total net worth in the United States is held by individuals in the [99th percentile of wealth](https://fred.stlouisfed.org/series/WFRBST01134), while wealth in the [middle percentiles has decreased](https://fred.stlouisfed.org/series/WFRBSN40188), even among the [90th to 99th percentile](https://fred.stlouisfed.org/series/WFRBSN40188). However, I believe this change is likely an underestimate of the decline in net worth across income groups. While net worth has been decreasing, I also hypothesize that hours worked per year are simultaneously increasing for individuals below the 99th percentile. In this way, net worth held by Americans might be comparable to "shrinkflation". Not only is relative income decreasing - simultaneously, the work required to obtain that income might be increasing.
+
+To investigate this, I've extracted data through [IPUMS for the CPS series](https://cps.ipums.org/cps/) between 1980 and 2020. This is cross-sectional microdata survey which contains demographic information, along with variables concerning work hours and income. I will use this data to see how hours of work have changed by year across income groups.
+
+This R markdown notebook details how I extracted and processed the data, data analysis I performed to examine CPS variables, and some initial examinations which explore the relationship between income status and hours worked by year and demographic group.
+
+## Data processing
+
+```{r process_cps, warnings = FALSE}
+
+library(data.table)
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(srvyr)
+
+cps <- fread("./data/cps/cps_hours_worked_1980_2023_5_percent_sample.csv")
+
+# Hold onto bare minimum columns we need for the analysis:
+cps <- cps[, .(YEAR, MONTH, SERIAL, PERNUM, STATEFIP, GQ, HHINCOME, 
+               INCTOT, INCWELFR, INCRENT, EMPSTAT, AGE, SEX, MARST, RACE, 
+               WKSWORK1, UHRSWORKLY, WKSUNEM1, ASECWT)]
+
+setnames(cps, names(cps), c("year", "month", "hhid", "pid", "state_fip", 
+                            "group_quarters", "hh_income", "p_income", 
+                            "income_welfare", "income_rent", "employment_status", 
+                            "age", "sex", "marital_status", "race", 
+                            "employed_weeks", "hours_per_week", 
+                            "unemployed_weeks", "survey_weight"))
+
+# Only hold onto observations living in households
+cps <- cps[group_quarters == 1,]
+
+####################
+# Record variables #
+####################
+
+# I created a state fips dataset to merge on state names using the codebook.
+# I'm using the join function from the "plyr" package because I prefer the
+# syntax better than the "merge" function in base R.
+
+state_fips <- fread("./data/helper/state_fips.csv")
+cps <- join(cps, state_fips, by = "state_fip", type = "left")
+
+# Checking to see if there's any oddities in the states
+unique(cps$state)
+
+#Nope
+
+# Create new hhid, based on survey year. IPUMS CPS either provides a
+# id based on longitudinal link or by year so we need a unique id
+# across the series.
+cps[, hhid := sprintf("%s_%s", year, hhid)]
+
+# Remove children from the sample
+cps <- cps[age >= 18,]
+
+# Set ages above 90 to 90 since CPS started top-coding age in 1988:
+cps[age >= 90, age := 90]
+
+cps[, sex := ifelse(sex == 1, "male", "female")]
+
+# Top-code race so that all the multiple categories are a single value. I'm
+# doing this to make the recode easier:
+cps[race > 800, race := 800]
+cps[race >= 650 & race <= 652, race := 600]
+
+new_race <- c("white", "black", "indigenous", "asian", "other", "multiple")
+
+# Using the 'mapvalue' function from the plyr package to recode. I double-checked
+# the coded values to ensure the order matched the new recodes.
+cps[, race := mapvalues(race, sort(unique(cps$race)), new_race)]
+
+# Coding both divorced and widowed as "former". Also, coding married with spouse
+# as former, if hh_income is the same as personal income or married, if otherwise.
+cps[marital_status %in% c(3, 4, 5, 7), marital_status := 3]
+
+cps[marital_status == 2 & hh_income == p_income, marital_status := 3]
+cps[marital_status == 2 & hh_income != p_income, marital_status := 1]
+
+new_marry <- c("married", "former", "single")
+cps[, marital_status := mapvalues(marital_status, 
+                                  sort(unique(cps$marital_status)), 
+                                  new_marry)]
+
+# Simply recode employment status to either working, unemployed, or retired. Ignore
+# the distinction between not in labor force and unemployed:
+cps[employment_status <= 12, employment_status := 10]
+cps[employment_status >= 20 & employment_status <= 35, employment_status := 20]
+cps[employment_status == 36, employment_status := 30]
+
+new_employ <- c("employed", "unemployed", "retired")
+cps[, employment_status := mapvalues(employment_status, 
+                                     sort(unique(cps$employment_status)), 
+                                     new_employ)]
+
+cps[hours_per_week == 999, hours_per_week := NA]
+
+# Check if there are any inconsistencies in number of weeks worked and
+# employment status:
+cps[employment_status != "employed" & employed_weeks > 0]
+
+# Looking at codebook, this variable indicates if they were unemployed within
+# 4 weeks of when the survey was issued, rather than if they were unemployed
+# for a given period of time. So I'll need to keep this in mind.
+
+cps[unemployed_weeks == 99, unemployed_weeks := NA]
+
+# Check to see if there are any inconsistencies between unemployed weeks and
+# weeks worked:
+cps[, total_weeks := employed_weeks + unemployed_weeks]
+
+sort(unique(cps$total_weeks))
+
+# This looks strange - let's look at a cross section to see if we
+# can figure out what's going on
+cps[total_weeks == 4,]
+
+# For values less than 52, I'm guessing this comes down to unemployment being
+# a very specific definition. What about more than 52 weeks?
+cps[total_weeks > 52]
+
+# There's only 17 observations where this occurs so I'm guessing there's a
+# miscoding problem. I'll impute unemployed weeks for these 17 individuals as
+# being the difference between 52 weeks and weeks worked:
+cps[total_weeks > 52, unemployed_weeks := 52 - employed_weeks]
+
+# I had to look at the IPUMS CPS on top-coding to get a better sense on which 
+# variables I should modify concerning income: 
+# https://cps.ipums.org/cps/topcodes_tables.shtml
+
+# However, the histograms of both hh_income and p_income appear to not be top-coded
+# Not sure what's going on here (extends all the way to 3 million!)
+quantile(cps$hh_income, probs = seq(0, 1, 0.1))
+
+# Convert all income into 2022 dollars. I used the suggested inflation factors
+# from IPUMS: https://cps.ipums.org/cps/cpi99.shtml
+inflate <- fread("./data/helper/in_2022_dollars.csv")
+cps <- join(cps, inflate, by = "year", type = "left")
+
+cps[, hh_income := hh_income*adjustment]
+cps[, p_income := p_income*adjustment]
+
+# Let's create a new variable which corresponds to the FRED categories for income
+# share. We'll need to calculate this separately for each year:
+
+cps[, hh_income_rank := percent_rank(.SD$hh_income), by = "year"]
+cps[, p_income_rank := percent_rank(.SD$p_income), by = "year"]
+
+# Alternatively, I could calculate this using survey weights.
+
+hh_income_share <- function(df){
+
+  hh_inc <- df$hh_income
+  df <- as_survey_design(df, weights = survey_weight)
+
+  # The idea here is to calculate weighted quantiles of household income, then
+  # use these quantiles to create categorical groups. To do that, once I get
+  # the quantiles, I will create a new dataframe which holds the upper value
+  # for each quantile. Then, I'll use the "cut" command in base
+  # R to map these quantiles to a new categorical group.
+
+  breaks <- df %>%
+            summarise(perc = survey_quantile(hh_income, c(0.01, 0.5, 0.9, 0.99, 1), 
+                                             vartype = NULL))
+
+  breaks <- melt(as.data.table(breaks), 
+                 variable.name = "percentile", value.name = "income")
+
+  df <- as.data.table(df$variables)
+
+  income_groups <- c("[0 - 1)", "[1, 50)", "[50, 90)", "[90, 99)", "99+")
+
+  # Note: For cut to work, I need breaks to include the lowest value in the data
+  # as a starting value:
+  percentile_categories <- cut(hh_inc, breaks = c(min(hh_inc), breaks$income),
+                               labels = income_groups, 
+                               right = F, include.lowest = T)
+  return(percentile_categories)
+
+}
+
+cps[, hh_income_group := hh_income_share(.SD), by = "year"]
+
+# Let's also use the naive household income rank to create income percentile groups
+# matching FRED, then see how well these compare to the weighted version.
+
+income_groups <- c("[0 - 1)", "[1, 50)", "[50, 90)", "[90, 99)", "99+")
+cps[, hh_income_group_unweighted := cut(hh_income_rank, 
+                                        breaks = c(0, 0.01, 0.5, 0.9, 0.99, 1),
+                                        labels = income_groups, 
+                                        right = F, include.lowest = T)]
+
+# How often does the unweighted estimate not match the weighted estimate? Get number
+# of rows in the dataset, then compare to number of rows in filtered dataset
+# where income groups do not match.
+n_total <- dim(cps)[1]
+n_diff  <- dim(cps[hh_income_group != hh_income_group_unweighted])[1]
+
+n_diff/n_total
+
+# Only 1.5% of the sample isn't matching. This doesn't seem like a huge deal
+# to me so I'll neglect to incorporate weights for now.
+
+# Income welfare and income rent have substantial missingness and a lack of variation
+# So let's just drop these:
+
+cps[, income_rent := NULL]
+cps[, income_welfare := NULL]
+cps[, total_weeks := NULL]
+cps[, adjustment := NULL]
+
+```
+
+## Data explorations
+
+Let's start by looking at some basic patterns in the data to better understand if we need to make any transformations or outlier any data points. I'll start by looking at some probability densities by variable, then also look at some scatterplots. What I chose to do here was mostly exploratory, based off my interest in the data. The hope is to better interpret the data and find problems while doing this series of explorations.
+
+```{r describe_hh_personal}
+
+# How balanced is household income rank with personal income rank?
+
+# I looked at the below plot by year and also by looking at the full sample.
+# This subset captures the general pattern, which is similar across years
+# and total sample. 
+
+df_plot <- cps[year == 2010, .SD[sample(5000)]]
+
+ggplot(df_plot, aes(x = p_income_rank, y = hh_income_rank)) +
+  geom_point(alpha = 0.05) +
+  facet_wrap(~year) +
+  theme_bw() +
+  theme(strip.background = element_blank())
+
+```
+
+Really interesting plot. Large fraction of observations are likely in single-earner households (points at zero personal income). There's also a clear pattern in the income rank which makes sense - if your personal income is sufficiently large, then there's no way you would be below a given household income rank. There's also clustering in points along that line.
+
+```{r dist_plots}
+
+# This is didactic but look at distribution of personal income and see 
+# results of transforming this variable:
+
+df_plot <- cps[year == 2010 & p_income > 0, .SD[sample(20000)]]
+plot(density(df_plot$p_income))
+
+# Same plot but using standard scores:
+df_plot[, p_income_z := (p_income - mean(p_income))/sd(p_income)]
+plot(density(df_plot$p_income_z))
+
+# Same shape! What if we log the variable?
+plot(density(log(df_plot$p_income)))
+
+# Shape is more symmetrical, though as discussed in the lecture this is not
+# the important part for modeling!
+
+```
+
+```{r income_by_age}
+
+ggplot(df_plot, aes(y = p_income, x = age)) +
+  geom_point(alpha = 0.05) +
+  theme_bw()
+
+summary(lm(p_income ~ age, df_plot))
+
+ggplot(df_plot, aes(y = p_income, x = age)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm', formula = y ~ x, color = "red") +
+  lims(y = c(0, 1e5)) +
+  theme_bw()
+
+summary(lm(p_income ~ age + I(age^2), df_plot))
+
+ggplot(df_plot, aes(y = p_income, x = age)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm', formula = y ~ x, color = "red") +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), color = "blue") +
+  lims(y = c(0, 1e5)) +
+  theme_bw()
+
+```
+
+Both models are under performing but there is some intuition behind the squared model. We can see in the figure that there's a ton of data points with smaller incomes in the high age categories. So maybe retirees are driving the negative effect on squared age, which seems implausible (most people have increasing personal income by age).
+
+```{r income_by_age_v2}
+
+df_plot[, p_income_ln := log(p_income)]
+
+ggplot(df_plot, aes(y = p_income_ln, x = age, color = employment_status)) +
+  geom_point(alpha = 0.4) +
+  theme_bw()
+
+# A bit easier to see patterns now. Let's restrict sample to employed individuals
+# and now use logged income as the dependent variable
+
+df_plot_subset <- df_plot[employment_status == "employed",]
+
+mod1 <- lm(p_income_ln ~ age, df_plot_subset)
+summary(mod1)
+
+df_plot_subset[, preds1 := predict(mod1)]
+
+ggplot(df_plot_subset, aes(y = p_income_ln, x = age)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm', formula = y ~ x, color = "red") +
+  theme_bw()
+
+# Much easier to see the relationship and a clear pattern now. Does including
+# a squared term seem to help?
+
+mod2 <- lm(p_income_ln ~ age + I(age^2), df_plot_subset)
+summary(mod2)
+
+df_plot_subset[, preds1 := predict(mod2)]
+
+ggplot(df_plot_subset, aes(y = p_income_ln, x = age)) +
+  geom_point(alpha = 0.05) +
+  geom_smooth(method='lm', formula = y ~ x, color = "red") +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), color = "blue") +
+  theme_bw()
+
+```
+
+It looks like we still see a similar pattern after we condition on employment status and use logged income. The second model seems to fit the pattern in the data a little bit better initially but seems to do worse for income in the older age groups. The question here would be: should we be analyzing this pattern for people working in late age? Or really, how can we improve the fit of this model further to capture the observed patterns in the dataset?
+
+## Data analysis
+
+Let's start by trying to replicate the findings in FRED.
+
+```{r investigate_income_share}
+
+# Let's calculate the share of total income by each percentile group:
+cps_share <- cps[pid == 1, .(year, hh_income_group, hh_income)]
+cps_share[, income_total := sum(.SD$hh_income), by = "year"]
+cps_share[, income_percentile := sum(.SD$hh_income), 
+          by = c("year", "hh_income_group")]
+
+cps_share[, income_share := income_percentile/income_total]
+
+cps_share <- unique(cps_share[, .(year, hh_income_group, income_share)])
+
+# Sanity check: Does the share of income sum to 1 each year?
+cps_share[, sum(.SD$income_share), by = "year"]
+
+ggplot(cps_share, aes(x = year, y = income_share, color = hh_income_group)) +
+  geom_line(size = 1) +
+  labs(x = "Year", y = "Share of \ntotal income",
+       color = "Income percentile") +
+  theme_bw()
+
+```
+
+We're not able to even come close to the dramatic findings in FRED, which indicates any analysis we do will likely be limited by the CPS sample. The biggest issue here is that people in the 99th percentile are the least likeliest to be sampled within CPS. So simply adding up income in CPS doesn't even come close to capturing the trends found using IRS data. While some of the general features are still there - income share in the 1st - 50th percentile is decreasing - we see an inversion in the 90 to 99th percentile compared to the FRED findings, and the decrease in the 50 - 90 percentile is really marginal compared to what's happening in reality.
+
+Let's try seeing if there's been a change in the hours worked.
+
+```{r investigate_total_hours}
+
+# Let's calculate the share of total income by each percentile group:
+cps[, mean_hours_percentile := mean(.SD$hours_per_week, na.rm = T), 
+    by = c("year", "hh_income_group")]
+
+df_plot <- unique(cps[, .(year, hh_income_group, mean_hours_percentile)])
+
+ggplot(df_plot, aes(x = year, y = mean_hours_percentile, color = hh_income_group)) +
+  geom_line(size = 1, alpha = 0.8) +
+  labs(x = "Year", y = "Average hours worked",
+       color = "Income percentile") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+```
+
+This initial graph doesn't look too promising and there's likely tons of reasons why this graph is ultimately inadequate at addressing the original research question. For one, this is plotting mean hours worked by household income percentile. However, for a two or more earner household, there might be a primary earner, along with several individuals who work less. So we might only want to look at the primary household earner to calculate this statistic. It also looks like there's probably an insufficient amount of data to look at the lowest income bracket (or the highest). We also need to restrict the sample to people who are employed.
+
+```{r investigate_total_hours_round_two}
+
+# Determine who earns the most personal income in a household, then
+# create a dummy variable for that individual. Subset to these observations
+cps[, top_earner := max(p_income), by = "hhid"]
+cps[, top_earner := ifelse(p_income == top_earner, 1, 0), by = "hhid"]
+
+# Restrict sample to the top earners
+df_plot <- cps[top_earner == 1 & employment_status == "employed", ]
+
+# Remove the 1st and 99th percentile:
+df_plot <- df_plot[hh_income_group != "[0 - 1)" & hh_income_group != "99+"]
+
+df_plot[, mean_hours_percentile := mean(.SD$hours_per_week, na.rm = T), 
+        by = c("year", "hh_income_group")]
+
+df_plot <- unique(df_plot[, .(year, hh_income_group, mean_hours_percentile)])
+
+ggplot(df_plot, aes(x = year, y = mean_hours_percentile, color = hh_income_group)) +
+  geom_line(size = 1, alpha = 0.8) +
+  labs(x = "Year", y = "Average hours worked",
+       color = "Income percentile") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+
+```
+
+There's still a ton of variablity from year to year so let's add in a rough measure of uncertainty to better understand if there's a meaningful difference across these groups or by year.
+
+```{r investigate_total_hours_uncertainty}
+
+df_plot <- cps[top_earner == 1 & employment_status == "employed", ]
+df_plot <- df_plot[hh_income_group != "[0 - 1)" & hh_income_group != "99+"]
+
+df_plot[, mean_hours_percentile := mean(.SD$hours_per_week, na.rm = T), 
+        by = c("year", "hh_income_group")]
+df_plot[, mean_hours_sd := sd(.SD$hours_per_week, na.rm = T), 
+        by = c("year", "hh_income_group")]
+
+df_plot[, n_sample := .N, by = c("year", "hh_income_group")]
+
+df_plot[, mean_hours_lower := mean_hours_percentile - 1.96*mean_hours_sd/sqrt(n_sample)]
+df_plot[, mean_hours_upper := mean_hours_percentile + 1.96*mean_hours_sd/sqrt(n_sample)]
+
+df_plot <- unique(df_plot[, .(year, hh_income_group, mean_hours_percentile, 
+                              mean_hours_lower, mean_hours_upper)])
+
+ggplot(df_plot, aes(x = year, y = mean_hours_percentile)) +
+        geom_line(size = 1, alpha = 0.8, aes(color = hh_income_group)) +
+        geom_ribbon(aes(ymin = mean_hours_lower, ymax = mean_hours_upper, 
+                        fill = hh_income_group), alpha = 0.3) +
+        labs(x = "Year", y = "Average hours worked",
+             fill = "Income percentile") +
+        guides(color = "none") +
+        theme_bw() +
+        theme(legend.position = "bottom")
+```
+
+Intervals are pretty tight on the means so based on CPS, it looks like if anything, hours have slightly decreased across income percentile groups. Let's see if we can confirm this with a model:
+
+```{r investigate_total_hours_model}
+
+df_plot <- cps[top_earner == 1 & employment_status == "employed" & 
+                 !is.na(hours_per_week), ]
+
+df_plot <- df_plot[hh_income_group != "[0 - 1)" & hh_income_group != "99+"]
+
+mod_hours <- lm(hours_per_week ~ year*hh_income_group, data = df_plot)
+
+pred_data <- setDT(expand.grid("year" = 1980:2023,
+                               "hh_income_group" = unique(df_plot$hh_income_group)))
+
+pred_data[, preds := predict(mod_hours, newdata = pred_data)]
+
+df_plot[, mean_hours_percentile := mean(.SD$hours_per_week, na.rm = T), 
+        by = c("year", "hh_income_group")]
+df_plot[, mean_hours_sd := sd(.SD$hours_per_week, na.rm = T), 
+        by = c("year", "hh_income_group")]
+
+df_plot[, n_sample := .N, by = c("year", "hh_income_group")]
+
+df_plot[, mean_hours_lower := mean_hours_percentile - 1.96*mean_hours_sd/sqrt(n_sample)]
+df_plot[, mean_hours_upper := mean_hours_percentile + 1.96*mean_hours_sd/sqrt(n_sample)]
+
+df_plot <- unique(df_plot[, .(year, hh_income_group, mean_hours_percentile, 
+                              mean_hours_lower, mean_hours_upper)])
+
+ggplot(df_plot, aes(x = year, y = mean_hours_percentile, color = hh_income_group)) +
+        geom_point(alpha = 0.5) +
+        geom_line(data = pred_data, aes(y = preds), size = 1) +
+        labs(x = "Year", y = "Average hours worked",
+             fill = "Income percentile") +
+        guides(color = "none") +
+        theme_bw() +
+        theme(legend.position = "bottom")
+
+```
+
+Probably need to build a little more flexibility into the above model to capture some of the observed trends, though these trends might be ephemeral. I would need to investigate this further, considering additional relationships across some of the other variables. Small multiple plots would help with this.

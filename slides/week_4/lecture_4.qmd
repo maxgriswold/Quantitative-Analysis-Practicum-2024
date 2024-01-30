@@ -1,5 +1,5 @@
 ---
-title: "Lecture 4: Data Analysis and Descriptive Models"
+title: "Lecture 4: Data analysis and descriptive models"
 author: Max Griswold
 institute: Pardee RAND Graduate School
 date: January 29, 2024
@@ -21,21 +21,247 @@ latex-tinytex: false
 reference-location: section
 ---
 
-## Quarto
+## Plan for today
 
-Quarto enables you to weave together content and executable code into a finished presentation. To learn more about Quarto presentations see <https://quarto.org/docs/presentations/>.
+::: fragment
+- Briefly discuss nonlinear data transformations.
+:::
 
-## Bullets
+::: fragment
+- Review data analysis techniques to explore data. 
+:::
 
-When you click the **Render** button a document will be generated that includes:
+::: fragment
+- Investigate variable comparisons using models (code example)
+:::
 
--   Content authored with markdown
--   Output from executable code
+## Transformations - Nonlinear 
 
-## Code
+::: {style="font-size: 70%;"}
+- In the previous lecture, we discussed how linear transformations can lead to more interpretable comparisons. However, these transformations won't help us meet modeling assumptions or improve modeling fit. 
+:::
 
-When you click the **Render** button a presentation will be generated that includes both content and the output of embedded code. You can embed code like this:
+::: fragment
+::: {style="font-size: 70%;"}
+- OLS and GLM (Generalized Linear Models) require an assumption of linearity and additivity. If we believe these assumptions are violated, we can try transforming the outcome variable to better met these conditions.
+:::
+:::
 
-```{r}
-1 + 1
+::: fragment
+::: {style="font-size: 70%;"}
+- We can also use transformations to better capture behavior we observe in the data, improve model predictions, and reduce standard errors (e.g., transformations to reduce heteroskedasticity).
+:::
+:::
+
+## Transformations - Logarithms 
+
+Logarithms can be helpful across a range of analysis situations.
+
+::: fragment
+::: {style="font-size: 70%;"}
+- If the outcome is strictly positive, taking a log of the outcome ensures predictions are strictly positive.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+- If we believe predictors have a multiplicative effect on the outcome (e.g. compounding health risks), then taking the log of an outcome permits linear models to meet the additivity assumption while maintaining this relationship.
+:::
+:::
+
+::: fragment
+$$
+\begin{aligned}
+log(y) &= b_0 + b_1 X_{i, 1} + \epsilon_i \\
+y &= e^{b_0 + b_1 X_{i, 1} + \epsilon_i} \\
+& = e^{b_0}\cdot e^{b_1 X_{i, 1}}\cdot e^{\epsilon_i}
+\end{aligned} 
+$$
+:::
+
+## Transformations - Logarithms
+
+Ex. Using <span style="color:#ff0000">log wealth</span> rather than <span style="color:#0075ff">untransformed wealth</span> leads to large improvements in model fit.
+
+```{r, echo = F, warnings = F, errors = F}
+
+options(warn=1)
+
+library(ggplot2)
+library(data.table)
+
+x <- runif(1000, 18, 80)
+y <- exp(rlnorm(1000, meanlog = 1, sdlog = 0.25)*0.02*x)*5000
+
+mod1  <- lm(y ~ x)
+pred1 <- predict(mod1)
+
+mod2 <- lm(log(y) ~ x)
+pred2 <- exp(predict(mod2))
+
+res <- data.table('Wealth' = y, 'Age' = x, 'pred1' = pred1, 'pred2' = pred2)
+
+ggplot(res, aes(x = Age, y = Wealth)) +
+  geom_point(size = 2, shape = 1) +
+  geom_line(aes(y = pred1), color = 'red', linewidth = 1) +
+  geom_line(aes(y = pred2), color = 'blue', linewidth = 1) +
+  scale_y_continuous(labels = scales::comma,
+                    limits = c(0, 500000)) +
+  theme_bw() +
+  theme(axis.title.y = element_text(angle = 0))
+
 ```
+## Transformations - Discretizing 
+
+::: {style="font-size: 70%;"}
+- Taking a continuous variable and turning it into discrete categories reduces your statistical power. 
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+- It can also potentially bias your results if discrete categories create artificial "shocks" in the data or if the distribution of implicit continuous values within a discrete category differs by group (e.g., this week's reading).
+:::
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+- However, to capture some functional relationships in your data, discretizing a variable might be your best option.
+:::
+:::
+
+## Gompertz Curve
+
+![](./figs/gompertz_curve.svg){fig-align="center"}
+
+## Transformations - Closing Thoughts
+
+::: fragment
+* As always, think critically about the data generating process.
+:::
+
+::: fragment
+* Constantly graph relationships. Scatterplots are powerful.
+  - If you have too many datapoints for a scatterplot, consider binning values, using hex plots, or looking at relationships across average values.
+:::
+
+::: fragment
+* Try lots of models and ideas! 
+:::
+
+## Exploratory Plots
+
+::: {style="font-size: 60%;"}
+The best way to understand your data is to create lots of plots and tabulations. I've found the following tools tend to be generally useful across problems when doing exploratory modeling.  
+:::
+
+::: columns
+::: {.column width="50%"}
+::: fragment
+- Scatterplots
+:::
+::: fragment
+- Lineplots
+:::
+::: fragment
+- Histograms/Density plots
+:::
+:::
+
+::: {.column width="49%"}
+::: fragment
+- Quantiles
+:::
+::: fragment
+- Correlations (heatmaps)
+:::
+::: fragment
+- Small multiples
+:::
+:::
+
+:::
+
+## Scatterplots
+
+::: {style="font-size: 50%;"}
+Very simple in R and useful for wide range of purposes (e.g., outlier detection, functional transformations, debugging models)
+:::
+
+```{r, echo = T}
+df <- data.table(x = rnorm(1000, mean = 1, sd = 0.5),
+                 y = rnorm(1000, mean = 2, sd = 2)^2)
+plot(df$x, df$y, xlab = "X", ylab = "Y")
+```
+
+## Lineplots
+
+::: {style="font-size: 70%;"}
+Only slight change in R syntax. Useful for time trends and mean group comparisons
+:::
+
+```{r, echo=T}
+Dose <- 0:100
+Severity <- exp(rlnorm(101, meanlog = 0.5, sdlog = 0.2)) + Dose/10
+plot(Dose, Severity,type = 'l')
+```
+
+## Empirical density plots
+
+::: {style="font-size: 70%;"}
+I tend to use empirical density plots to better understand which transformation might be appropriate, to assess normality to reduce standard errors, to detect outliers and possible skewness, and to better understand a variable's characteristics generally. 
+:::
+
+```{r, echo=T}
+Income <-  rgamma(100, 2, 3)*50000
+plot(density(Income))
+```
+
+## Empirical histograms
+
+::: {style="font-size: 70%;"}
+Density plots can be too smooth and might mask some variation. However, you will need to play around with the number of bins when plotting histograms to make sure you're capturing the distribution's tendencies.
+:::
+
+```{r, echo=T}
+plot(hist(Income))
+```
+
+## Empirical histograms
+
+```{r, echo=T}
+plot(hist(Income, breaks = 50))
+```
+
+## Empirical histograms
+
+```{r, echo=T}
+plot(hist(Income, breaks = 100))
+```
+
+## Quantiles
+
+::: {style="font-size: 70%;"}
+Alternatively, quantiles can be useful to get a sense of a variables distribution without needing to specify number of bins or density smoothing. I also tend to use these to generate a smaller set of categories for plots which capture segments of the data (e.g. for making small multiples using continuous variables).
+::: 
+
+```{r, echo=T}
+quantile(Income, probs = seq(0, 1, 0.1))
+```
+
+## Correlation matrices
+
+::: {style="font-size: 70%;"}
+These are less often useful but can be helpful for detecting possible threats to interpreting model variables due to multicollinearity or for constructing exploratory factors.
+::: 
+
+```{r, echo=T}
+df <- data.table(x = rnorm(100), y = rnorm(100), z = rnorm(100))
+cor(df)
+```
+
+## Small multiples
+
+![](./figs/small_multiples.PNG){width="65%" fig-align="center"}
+
+
+
