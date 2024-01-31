@@ -6,7 +6,7 @@ rm(list = ls())
 #Set working directory
 setwd("C:/Users/yoshiara/OneDrive - RAND Corporation/Desktop/max's class/")
 
-#Max suggested uploads
+#Max suggested commands
 getwd()
 list.files()
 
@@ -53,8 +53,21 @@ df_mining <- data.frame(
   mining$Mine.Location)
 
 #Generate new dataframes of deposits and conflicts for Africa only
+#Africa deposits
 print(unique(deposit$country))
-africa <- read.csv*ad
+
+africa <- read.csv("africa.csv")
+
+mineral_deposits_africa <- left_join(deposit, africa, by = "country")
+
+# Remove rows with missing continent values
+mineral_deposits_africa <- subset(mineral_deposits_africa, !is.na(continent))
+
+#Africa conflict/ACLED
+ls(acled)
+print(unique(acled$region))
+#Shoot, realized that ACLED data is already for Africa only
+
 # Make a world map showing where mineral deposits are located.
 # QUESTIONS -- how can I change the size and color of the dots based on deposit size and mineral type?
 # NEXT STEPS -- do this but just for African countries.
@@ -101,3 +114,51 @@ for (i in seq(nrow(deposit_sf))) {
 
 # Display the map
 map
+
+# Trying to summarize the number of conflict events by year within 20 miles of a mineral deposit in africa by year
+# Install and load necessary packages
+install.packages("dplyr")
+library(sf)
+library(dplyr)
+library(geosphere)
+
+#Set working directory
+setwd("C:/Users/yoshiara/OneDrive - RAND Corporation/Desktop/max's class/")
+
+
+#Read in USGS mineral deposit data (world)
+deposit <-read.csv("deposit.csv")
+
+#Read in conflict data (Africa only)
+acled <- read.csv("1997-01-01-2024-01-01-Eastern_Africa-Middle_Africa-Northern_Africa-Southern_Africa-Western_Africa.csv")
+
+#Generate new dataframe of deposits for Africa only (currently a global dataset)
+#Africa deposits
+print(unique(deposit$country))
+
+africa <- read.csv("africa.csv")
+
+mineral_deposits_africa <- left_join(deposit, africa, by = "country")
+
+# Remove rows with missing continent values
+mineral_deposits_africa <- subset(mineral_deposits_africa, !is.na(continent))
+
+
+# Create sf objects with geometry
+acled_sf <- st_as_sf(acled, coords = c("longitude", "latitude"))
+africa_deposit_sf <- st_as_sf(mineral_deposits_africa, coords = c("longitude", "latitude"))
+
+# Add buffer around mineral deposits
+deposit_buffered <- st_buffer(africa_deposit_sf, dist = 20 * 1609.34)  # 20 miles to meters
+
+# Perform spatial join
+joined_data <- st_join(acled_sf, deposit_buffered, join = st_within)
+
+
+# Group by deoist ID (gid) and year (from the conflict/ACLED data), summarize the count of conflict events
+result <- joined_data %>%
+  group_by(gid, year) %>%
+  summarise(Num_Conflict_Events = n())
+
+# Print or inspect the result
+print(result)
