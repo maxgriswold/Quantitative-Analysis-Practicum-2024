@@ -1,10 +1,10 @@
 ---
-title: "Demonstrate how disparate impact statistics can fail"
+title: "Demonstrate how disparate impact statistics can fail to recover known disparities"
 author: "Max Griswold"
 date: "2024-01-11"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r knitr_options, include = F}
@@ -24,7 +24,6 @@ library(data.table)
 Disparate impact cases require demonstrating if a disparity in outcomes for a protected class is statistically significant and sufficiently sized. This project aims to use simulation to show a range of cases where the conventional statistical rules for determining a disparate impact -the four-fifths rule and significance rule - can lead to different conclusions due
 
 This notebook demonstrates a simplified example of how we might conduct simulations. The setup concerns a landlord determining whether to accept a tenant's rental application, based on their income and former-incarceration status. In each of the three scenarios below, the landlord aims to deny tenancy to applicants based on their race.
-
 
 ## Problem setup
 To start, I generate data according to the following data generating process (figure 1). I assume that an applicant's race is correlated both with their monthly earnings and with the probability of being formerly-incarcerated. I also assume monthly earnings also depend on former incarceration status. I assume in each scenario that these three variables uniquely determine if a landlord
@@ -69,7 +68,7 @@ For each simulation and scenario, I regressed a tenant's application status (acc
 
 I then obtained the estimated p-value for the beta-coefficient on race and used the regression equation to calculate an estimate for the ratio of black-to-white applicants denied tenancy. Finally, I took the mean of these estimates across simulation iterations.
 
-```{r functions, echo = F}
+```{r functions, echo = T}
 
 prob_ratio <- function(p1, p2){
   
@@ -187,7 +186,7 @@ sim_scenarios <- function(n, iter, sum_res = T){
 ```{r model_runs, echo = F}
 
 n <- seq(200, 4000, 200)
-i <- 1:100
+i <- 1:1000
 
 # Run each scenario 100 times, for each sample size
 args <- expand.grid("n" = n, "i" = i)
@@ -243,10 +242,6 @@ Additionally, the estimating equations vary substantially in terms of detecting 
 
 However, in scenario 3, the model is unable to detect a significant effect at any sample size. This scenario is the canonical case where disparate impact tests would be most useful since the landlord's decision-making did not depend on race per se (i.e. no intent) but led to a disparate impact. This result should be unsurprising based on the data generating process above (since the model controls for both earnings and former incarceration status, there is no possibility for the race variable to generate an effect). 
 
-This result also aligns with existing scholarship which criticizes the use of examining the treatment effect of race as a measure of discrimination. [Kohler-Hausmann, 2019](https://scholarlycommons.law.northwestern.edu/cgi/viewcontent.cgi?article=1374&context=nulr); [Heckman, 1998](https://www.aeaweb.org/articles?id=10.1257/jep.12.2.101). Since the model controls for variables causally related to race, which is a routine practice done during disparate impact analyses, the model removes many of the factors causing discriminatory impacts due to race. Previous scholars have described this as the "included variable bias" ([Ayres, 2010](https://www.law.upenn.edu/live/files/1138-ayresincludedvariablebiaspdf); [Jung et al., 2023](https://5harad.com/papers/included-variable-bias.pdf)). In particular Jung et al., 2023 demonstrates that by weighting averages of differences across groups balanced by control covariates, it might be possible to identify the actual disparity. 
-
-
-
 ```{r pvalue v. sample, echo = F}
 
 plot_colors <- c("#bdbdbd", "#737373", "#252525")
@@ -273,8 +268,3 @@ ggplot(df, aes(x = n, y = pval, color = as.factor(scenario))) +
             legend.text = element_text(family = 'serif', size = 12))
 
 ```
-
-However, as Figure 2 shows, this could introduce a new problem: smaller sample sizes, making it less likely to meet the statistical significance rule. Since the Jung approach requires stratifying differences and creating a unitary measure of risk, a larger sample size would be needed to identify disparities. One potential solution to this suggested by previous work, is that courts should  use probabilities of detecting an effect in place of statistical significance [Miao and Gastwirth, 2013](https://academic.oup.com/lpr/article/12/1/37/925237#15990473). But this would require determining study power, which might not be possible due to a lack of reliable previous estimates and the limitations of determining statistical power after collecting data [Dziak, Dierker, and Abar, 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7286546/). 
-
-
-With this research in mind, this study will aim to construct synthetic datasets which contain properties matching datasets used in existing cases on disparate impact. Through the use of these synthetic datasets, we will examine how often current procedures are able to recover known disparate impacts and meet the rule standards, given increased sample sizes or modifications to model specifications addressing included-variable bias. Additionally, we will  explore the extent to which it is possible to apply potential solutions to included-variable bias, since this is essential bias to resolve given the purpose of disparate impact cases (e.g., scenario 3 above). We will also assess how the use of these tests may modify the ability to meet the two rule standards of disparate impact testing: the four-fifths rule and the statistical significance standard.
