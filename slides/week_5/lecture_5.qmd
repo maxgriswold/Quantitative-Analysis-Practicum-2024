@@ -1,0 +1,254 @@
+---
+title: "Lecture 5: Causal Inference"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: January 29, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: logo.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    footer: "Pardee RAND"
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Plan for today
+
+::: fragment
+- Discuss the principles behind causal inference.
+:::
+
+::: fragment
+- Discuss how your subject expertise relates to causal inference assumptions.
+:::
+
+::: fragment
+- Examine how synthetic data can be used to narrow down plausible research designs.
+:::
+
+## The big picture
+
+- Constructing an estimator to predict a causal effect using R or other scripting languages is the easy part. 
+
+::: fragment
+- The difficulty in doing causal inference comes from creating a credible research design and arguing you meet the assumptions for causal inference. 
+:::
+
+::: fragment
+- As a policy analyst, your subject expertise and clarity in presenting arguments are your most valuable contributions..
+:::
+
+## The fundamental problem
+
+Before a policy intervention $z_i$, there are two potential outcomes that could be realized for an individual: $y_i^1$ and $y_i^0$. After the intervention occurs, we observe only outcome $y_i$. \
+
+<br>
+
+::: fragment
+However, $y_i$ is a function of both potential outcomes.
+
+$$y_i = y_i^0(1 - z_i) + y_i^1(z_i)$$
+
+
+and we only observe $y_i$ for either $z_i = 1$ or $z_i = 0$. 
+::: 
+
+## The fundamental problem
+
+Accordingly, the effect of an intervention $\tau_i$ is determined by the difference in the two potential outcomes (the what if?):
+
+$$\tau_i = y_i^1 - y_i^0$$
+
+::: fragment
+To calculate $\tau_i$, we need to <span style="color:#ff0000">predict</span> the unobserved potential outcome (the counterfactual). 
+:::
+
+## The fundamental problem
+
+::: {style="font-size: 70%;"}
+In general, it is not possible to discover an unit-level intervention effect since we need an estimator to predict the counterfactual outcome. So instead, we can use multiple units, some exposed an intervention and some not, to estimate an average intervention effect:
+
+$$E[\tau_{1}] = E[y_{i}|z_1] - E[y_i|z_0]$$
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+Typically, the left-hand side of this equation is described as an "ATE" or average treatment effect.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+Note: This is just one of many possible effects we could estimate. Depending on the problem, you might want an alternative estimand like the average treatment on the treated effect (ATT), conditional average treatment effects (CATE), a local average treatment effect (LATE), or the variance of a treatment effect.
+:::
+:::
+
+## Causal inference assumptions
+
+::: {style="font-size: 70%;"}
+For any research design (and accompanying estimator) to successfully recover an average treatment effect, we need to make sure three assumptions are met: 
+::: 
+
+::: columns
+
+::: {.column width="33%"}
+::: {style="font-size: 60%;"}
+::: fragment
+- Ignorable treatment assignment
+:::
+
+::: fragment
+- AKA selection on observables
+:::
+
+::: fragment
+- AKA exogeneity
+:::
+
+::: fragment
+- AKA exchangeability
+:::
+
+::: fragment
+- AKA No confounding/ conditional independence
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: {style="font-size: 60%;"}
+::: fragment
+- Stable Unit Treatment Value Assumption (SUTVA)
+:::
+
+::: fragment
+- AKA no interference and no variation in treatments
+:::
+
+::: fragment
+- AKA no spillover and consistency assumption.
+:::
+:::
+:::
+
+::: {.column width="33%"}
+::: {style="font-size: 60%;"}
+::: fragment
+- Positivity
+:::
+::: fragment
+- AKA overlap
+:::
+
+:::
+:::
+
+:::
+
+## Ignorable treatment assignment
+
+To predict $E[\tau]$ accurately, we don't just need multiple units - we need comparable units across both treated and untreated groups (balanced groups).  
+
+::: fragment
+- To ensure comparability between the two groups, we need to meet the ignorable treatment assignment assumption.
+:::
+
+::: fragment
+- Two known design strategies for ensuring comparability are randomization and statistical adjustments. 
+:::
+
+::: fragment
+- The ignorability assumption states that there are no unobserved variables which are correlated with both treatment assignment and the outcome.
+:::
+
+## Ignorable treatment assignment
+
+Making sure the treated and control groups are comparable is critical to ensure the estimated treatment effect does not contain selection bias.
+
+$$\begin{aligned} 
+E[y|z_1] - E[y|z_0] &= E[y_1|z_1] - E[y_0|z_0] + E[y_0|z_1] - E[y_0|z_0]
+\end{aligned}$$
+
+::: fragment
+If we do not meet the assumption of ignorable treatment assignment, then the difference between the second set of terms (the effect of control groups had they been treated) will be non-zero.
+:::
+
+## Ignorable treatment assignment
+
+- As mentioned, one approach to reducing the threat of selection bias is through using randomized experimental designs (or quasi-experimental designs). Alternatively, we can use statistical adjustments to control for variables which determine selection into treatment ("conditional randomization").
+
+::: fragment
+- Specifically, we need to include in our estimating equations all variables which are correlated with both treatment assignment and the outcome.
+:::
+
+::: fragment
+- This is where your causal pathway diagram and subject expertise are critical! No specific research design will ever ensure the assumption is met.
+:::
+
+## SUTVA
+
+The stable unit treatment value assumption states that:
+
+1. The potential outcomes for any unit do not vary with treatment assigned to other units.
+
+::: fragment
+2. For each treated unit, they receive an identical form of treatment.
+:::
+
+::: fragment
+In practice, SUTVA is likely to be violated within many policy analysis studies. If this assumption isn't met, then the estimate of ATE will be biased. 
+:::
+
+## SUTVA
+
+::: {style="font-size: 80%;"}
+Subject expertise is critical to assess whether the SUTVA assumption is potentially being violated. While you can use graphical methods and sensitivity analyses to examine if SUTVA might be violated and the extent of that bias (we'll discuss this next week), thinking critically about the policy problem can provide insight into the validity of this assumption:
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Is it possible a policy is being spread by an unobserved process?
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- How might untreated individuals interact with treated units? 
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- How is the policy being implemented on the ground? How can it differ across individuals?
+:::
+:::
+
+## Positivity
+
+One of the least discussed assumptions in the literature but critical for extrapolating causal effects!
+
+::: fragment
+The positivity assumption (overlap assumption) states for every combination of covariates, there is a non-zero probability of being assigned to either treatment or the control group.
+:::
+
+::: fragment
+$$0 < P(Z = 1|X = x) < 1$$
+:::
+
+::: fragment
+- Meeting this assumption improves the generalizability and precision of estimated effects. 
+:::
+
+::: fragment
+- Failing to meet this assumption can be particularly fatal for methods relying on weighting.
+:::
+

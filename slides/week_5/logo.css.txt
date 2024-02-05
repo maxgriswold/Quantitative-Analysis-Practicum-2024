@@ -1,0 +1,14 @@
+.reveal .slide-logo {
+  height: 800px !important;
+  width: 800px!important;
+  max-width: unset !important;
+  max-height: unset !important;
+}
+
+.reveal {
+  background-color: #f0f0f0
+}
+
+.reveal .slides section>h1{
+  background-color: #66309a
+}
