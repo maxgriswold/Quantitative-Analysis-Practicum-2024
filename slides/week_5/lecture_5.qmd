@@ -2,7 +2,7 @@
 title: "Lecture 5: Causal Inference"
 author: Max Griswold
 institute: Pardee RAND Graduate School
-date: January 29, 2024
+date: February 5, 2024
 
 format:
   html: 
@@ -184,14 +184,20 @@ If we do not meet the assumption of ignorable treatment assignment, then the dif
 
 ## Ignorable treatment assignment
 
+::: {style="font-size: 80%;"}
 - As mentioned, one approach to reducing the threat of selection bias is through using randomized experimental designs (or quasi-experimental designs). Alternatively, we can use statistical adjustments to control for variables which determine selection into treatment ("conditional randomization").
-
-::: fragment
-- Specifically, we need to include in our estimating equations all variables which are correlated with both treatment assignment and the outcome.
 :::
 
 ::: fragment
+::: {style="font-size: 80%;"}
+- Specifically, we need to include in our estimating equations all variables which are correlated with both treatment assignment and the outcome.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
 - This is where your causal pathway diagram and subject expertise are critical! No specific research design will ever ensure the assumption is met.
+:::
 :::
 
 ## SUTVA
@@ -234,21 +240,47 @@ Subject expertise is critical to assess whether the SUTVA assumption is potentia
 
 ## Positivity
 
+::: {style="font-size: 80%;"}
 One of the least discussed assumptions in the literature but critical for extrapolating causal effects!
-
-::: fragment
-The positivity assumption (overlap assumption) states for every combination of covariates, there is a non-zero probability of being assigned to either treatment or the control group.
 :::
 
 ::: fragment
+::: {style="font-size: 80%;"}
+- The positivity assumption (overlap assumption) states for every combination of covariates, there is a non-zero probability of being assigned to either treatment or the control group.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
 $$0 < P(Z = 1|X = x) < 1$$
 :::
+:::
 
 ::: fragment
+::: {style="font-size: 80%;"}
 - Meeting this assumption improves the generalizability and precision of estimated effects. 
 :::
+:::
 
 ::: fragment
+::: {style="font-size: 80%;"}
 - Failing to meet this assumption can be particularly fatal for methods relying on weighting.
 :::
+:::
+
+## Next week
+
+::: {style="font-size: 60%;"}
+- We'll discuss how to use ggplot and model simulations to visualize results.
+:::
+
+::: fragment
+::: {style="font-size: 60%;"}
+- We'll also talk about the philosophy of creating effective visualizations.
+:::
+:::
+
+## Next week 
+
+![](./figs/griswold_2018_fig_3.jpg){width=50%}
 

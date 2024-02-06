@@ -340,7 +340,7 @@ Max Griswold
     </div>
 </div>
 
-  <p class="date">1/29/24</p>
+  <p class="date">2/5/24</p>
 </section>
 <section id="plan-for-today" class="slide level2">
 <h2>Plan for today</h2>
@@ -511,18 +511,24 @@ E[y|z_1] - E[y|z_0] &amp;= E[y_1|z_1] - E[y_0|z_0] + E[y_0|z_1] - E[y_0|z_0]
 </section>
 <section id="ignorable-treatment-assignment-2" class="slide level2">
 <h2>Ignorable treatment assignment</h2>
+<div style="font-size: 80%;">
 <ul>
 <li>As mentioned, one approach to reducing the threat of selection bias is through using randomized experimental designs (or quasi-experimental designs). Alternatively, we can use statistical adjustments to control for variables which determine selection into treatment (“conditional randomization”).</li>
 </ul>
+</div>
 <div class="fragment">
+<div style="font-size: 80%;">
 <ul>
 <li>Specifically, we need to include in our estimating equations all variables which are correlated with both treatment assignment and the outcome.</li>
 </ul>
 </div>
+</div>
 <div class="fragment">
+<div style="font-size: 80%;">
 <ul>
 <li>This is where your causal pathway diagram and subject expertise are critical! No specific research design will ever ensure the assumption is met.</li>
 </ul>
+</div>
 </div>
 </section>
 <section id="sutva" class="slide level2">
@@ -569,23 +575,54 @@ E[y|z_1] - E[y|z_0] &amp;= E[y_1|z_1] - E[y_0|z_0] + E[y_0|z_1] - E[y_0|z_0]
 </section>
 <section id="positivity" class="slide level2">
 <h2>Positivity</h2>
+<div style="font-size: 80%;">
 <p>One of the least discussed assumptions in the literature but critical for extrapolating causal effects!</p>
-<div class="fragment">
-<p>The positivity assumption (overlap assumption) states for every combination of covariates, there is a non-zero probability of being assigned to either treatment or the control group.</p>
 </div>
 <div class="fragment">
+<div style="font-size: 80%;">
+<ul>
+<li>The positivity assumption (overlap assumption) states for every combination of covariates, there is a non-zero probability of being assigned to either treatment or the control group.</li>
+</ul>
+</div>
+</div>
+<div class="fragment">
+<div style="font-size: 80%;">
 <p><span class="math display">\[0 &lt; P(Z = 1|X = x) &lt; 1\]</span></p>
 </div>
+</div>
 <div class="fragment">
+<div style="font-size: 80%;">
 <ul>
 <li>Meeting this assumption improves the generalizability and precision of estimated effects.</li>
 </ul>
 </div>
+</div>
 <div class="fragment">
+<div style="font-size: 80%;">
 <ul>
 <li>Failing to meet this assumption can be particularly fatal for methods relying on weighting.</li>
 </ul>
 </div>
+</div>
+</section>
+<section id="next-week" class="slide level2">
+<h2>Next week</h2>
+<div style="font-size: 60%;">
+<ul>
+<li>We’ll discuss how to use ggplot and model simulations to visualize results.</li>
+</ul>
+</div>
+<div class="fragment">
+<div style="font-size: 60%;">
+<ul>
+<li>We’ll also talk about the philosophy of creating effective visualizations.</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="next-week-1" class="slide level2">
+<h2>Next week</h2>
+<p><img data-src="./figs/griswold_2018_fig_3.jpg" style="width:50.0%"></p>
 <p><img src="prgs.png" class="slide-logo"></p>
 <div class="footer footer-default">
 <p>Pardee RAND</p>
