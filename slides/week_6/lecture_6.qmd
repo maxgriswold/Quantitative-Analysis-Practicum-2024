@@ -1,0 +1,303 @@
+---
+title: "Lecture 6: Visualizing data and results"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: February 12, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: custom.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Plan for today
+
+::: fragment
+- What makes an effective policy research visualization?
+:::
+
+::: fragment
+- Discuss the philosophy behind the grammar of graphics.
+:::
+
+::: fragment
+- Explain how ggplot can be used to create commonly useful figures.
+:::
+
+## Resources for today's lecture
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [Guide to Information Graphics - The Dos and Dont's of Presenting Data, Facts, and Figures, Dona Wong](https://wwnorton.com/books/The-Wall-Street-Journal-Guide-to-Information-Graphics/)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [The Elements of Graphing Data, William Cleveland](https://archive.org/details/elementsofgraphi0000clev/mode/2up)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [Data Visualization - A Practical Introduction, Kiernan Healy](https://socviz.co/)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [Better Data Visualizations, Jonathan Schwabish](https://policyviz.com/pv_books/better-data-visualizations-a-guide-for-scholars-researchers-and-wonks/)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [Edward Tufte books](https://www.edwardtufte.com/tufte/books_vdqi)
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- [Data Analysis using Regression and Multilevel/Hierarchical Models - Appendix B, Andrew Gelman and Jennifer Hill](https://github.com/maxgriswold/Quantitative-Analysis-Practicum-2024/blob/main/readings/textbooks/Gelman%20A.%2C%20Hill%20J.%20-%20Data%20Analysis%20Using%20Regression%20and%20Multilevel%20Hierarchical%20Models.pdf)
+:::
+:::
+
+
+## Effective visuals
+
+There is immense flexibility in how results can be displayed. So what makes for an effective figure?
+
+::: fragment
+![Schwabish, 2021](./figs/same_data.png){width="60%"}
+:::
+
+
+## Effective visuals - principles
+
+::: fragment
+1. Show your data [(but highlight the portions relevant for your argument)]{.fragment}
+:::
+
+::: fragment
+2. Reduce clutter.
+:::
+
+::: fragment
+3. Integrate text with graphics.
+:::
+
+::: fragment
+4. Avoid packing information into one chart and instead use small multiples
+:::
+
+::: fragment
+5. Iterate and start with grey.
+:::
+
+## Effective visuals - clarity
+
+::: {style="font-size: 70%"}
+Human eyes can only detect a limited set of visual characteristics, which are combined into the perception of a single image. You can use encoded attributes to direct a viewer's attention.
+:::
+
+::: fragment
+![Schwabish, 2021](./figs/preattentive_attributes.png){fig-align="center" width="60%"}
+:::
+
+## Effective visuals - clarity
+
+::: columns
+
+:::{.column width="40%"}
+::: {style="font-size: 80%"}
+
+::: fragment
+Different ways of encoding graphical attributes leads to more or less accurate comparisons of the data. 
+:::
+
+::: fragment
+However, accuracy is not always the principle goal. Less accurate encodings can sometimes help viewers to see patterns or prompt them to engage with a figure.
+:::
+:::
+:::
+
+::: {.column width="60%"}
+![Schwabish, 2021](./figs/perceptual_ranking.png){width="70%"}
+:::
+
+:::
+
+## Effective visuals - clarity
+
+Add context to your figure directly and integrate text with the figure.
+
+![Schwabish, 2021](./figs/short_explainers.png)
+
+## Effective visuals - clarity
+
+\
+\
+
+![Schwabish, 2021](./figs/integrate_text_2.png)
+
+## Effective visuals - clarity
+
+Use active titles to make your argument clearer.
+
+::: fragment
+![](./figs/use_active_titles.png){fig-align="center"}
+:::
+
+## Effective visuals - clarity
+
+::: {style="font-size: 80%;"}
+Try to remove visual noise and highlight attributes critical to an argument. Embed legends within the figure.
+:::
+\
+
+
+![Schwabish, 2021](./figs/show_the_data.png)
+
+## Effective visuals - purpose
+
+::: {style="font-size: 80%;"}
+Aim to make impactful figures which are suited to the richness of your data.
+:::
+
+![Wong, 2010](./figs/visual_impact.png){width="75%" fig-align="center"}
+
+## Effective visuals - purpose
+
+![](./figs/heatmap_ex_polio.png){width="75%" fig-align="center"}
+
+## Effective visuals - purpose
+
+![](./figs/line_chart_ex_polio.png){width="75%" fig-align="center"}
+
+## Effective visuals - purpose
+
+![](./figs/your_healthcare.png){fig-align="center" width="70%"}
+
+## Effective visuals - small multiples
+
+::: {style="font-size: 60%;"}
+Using repetition and small multiples can make complex figures accessible.
+:::
+
+![Giorgia Lupi \& Corriere della Sera, 2012](./figs/nobel_laureates.jpg){width="75%" fig-align="center"}
+
+## Effective visuals - small multiples
+
+::: {style="font-size: 60%;"}
+Even simpler figures can be made clearer by using small multiples.
+:::
+
+![Schwabish, 2021](./figs/effective_line.png){width="70%"}
+
+## Effective visuals - bar charts
+
+![Schwabish, 2021](./figs/difficult_bar.png)
+
+## Effective visuals - bar charts
+
+![Schwabish, 2021](./figs/easier_bar.png)
+
+## Effective visuals - bar charts
+
+![Schwabish, 2021](./figs/easiest_bar.png)
+
+## Effective visuals - bar charts
+
+![Schwabish, 2021](./figs/easier_bar_more_info.png){width="70%"}
+
+## Effective visuals - bar charts
+
+![Schwabish, 2021](./figs/best_bar.png){width="70%"}
+
+## Effective visuals - text
+
+- Keep the typography style simple and do not obscure the data!
+
+::: fragment
+- Only use bold or italics to emphasize arguments.
+:::
+::: fragment
+- Avoid hyphenation
+:::
+::: fragment
+- Do not set text at an angle.
+:::
+
+::: fragment
+![Wong, 2010](./figs/text_legibility.png){width=400}
+:::
+
+## Effective visuals - tables
+
+![Schwabish, 2021](./figs/bad_regression_table.png)
+
+## Effective visuals - tables
+
+![Schwabish, 2021](./figs/better_regression_table.png)
+
+## Effective visuals - tables
+
+![Schwabish, 2021](./figs/best_regression_table.png)
+
+## Effective visuals - tables
+
+:::: {.columns style='display: flex !important; height: 90%;'}
+
+::: {.column width="50%" style='display: flex; justify-content: center; align-items: center;'}
+![Gelman \& Hill, 2006](./figs/gelman_table.png)
+:::
+
+::: {.column width="50%" style='display: flex; justify-content: center; align-items: center;'}
+![Gelman \& Pardoe, 2007](./figs/gelman_table2.png)
+:::
+
+::::
+
+## Effective visuals - maps
+
+::: {style="font-size: 70%;"}
+- Be critical about displaying information on a map. Is spatial arrangement of units important? Or are you better off with a different plot?
+:::
+
+::: fragment
+::: {style="font-size: 70%;"}
+- Maps can induce spurious patterns because geography can be unusually shaped and spatial variation can be confounded with sample sizes (Gelman and Price, 1999)
+:::
+:::
+
+::: fragment
+![Gelman \& Hill, 2006](./figs/gelman_maps.png)
+:::
+
+## Grammar of graphics
+
+::: fragment
+- The Grammar of Graphics is an influential framework for describing statistical graphics (Wilkinson, 1999)
+:::
+
+::: fragment
+- The basic idea is that figures follow structural rules (a grammar) based on layering visual components.
+:::
+
+::: fragment
+- Different authors and software packages use a varying number of layered components, though most follow the standards within ggplot. 
+:::
+
+## Grammar of graphics
+
+![Sarkar, 2018](./figs/gg_components.webp)
