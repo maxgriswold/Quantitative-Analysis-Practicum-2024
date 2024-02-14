@@ -49,7 +49,7 @@ setnames(cps, names(cps), c("year", "month", "hhid", "pid", "state_fip",
 cps <- cps[group_quarters == 1,]
 
 ####################
-# Record variables #
+# Recode variables #
 ####################
 
 # I created a state fips dataset to merge on state names using the codebook.

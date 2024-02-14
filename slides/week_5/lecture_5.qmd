@@ -175,7 +175,7 @@ To predict $E[\tau]$ accurately, we don't just need multiple units - we need com
 Making sure the treated and control groups are comparable is critical to ensure the estimated treatment effect does not contain selection bias.
 
 $$\begin{aligned} 
-E[y|z_1] - E[y|z_0] &= E[y_1|z_1] - E[y_0|z_0] + E[y_0|z_1] - E[y_0|z_0]
+E[y|z_1] - E[y|z_0] &= E[y|z_1] - E[y|z_0] + E[y_1|z_0] - E[y_0|z_0]
 \end{aligned}$$
 
 ::: fragment

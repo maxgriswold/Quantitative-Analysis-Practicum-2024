@@ -503,7 +503,7 @@ Max Griswold
 <h2>Ignorable treatment assignment</h2>
 <p>Making sure the treated and control groups are comparable is critical to ensure the estimated treatment effect does not contain selection bias.</p>
 <p><span class="math display">\[\begin{aligned}
-E[y|z_1] - E[y|z_0] &amp;= E[y_1|z_1] - E[y_0|z_0] + E[y_0|z_1] - E[y_0|z_0]
+E[y|z_1] - E[y|z_0] &amp;= E[y|z_1] - E[y|z_0] + E[y_1|z_0] - E[y_0|z_0]
 \end{aligned}\]</span></p>
 <div class="fragment">
 <p>If we do not meet the assumption of ignorable treatment assignment, then the difference between the second set of terms (the effect of control groups had they been treated) will be non-zero.</p>
