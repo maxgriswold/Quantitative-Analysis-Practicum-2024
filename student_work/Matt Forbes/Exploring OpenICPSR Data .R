@@ -47,3 +47,13 @@ unique(employment_data$GEO_ID)
 #Yup, but since there are several geo columns in the data, maybe a different file
 #has smaller geographic levels
 
+
+#I see now that the OpenICPSR page has a ReadMe file. Probably would have been a good
+#idea to start there.
+#Link: https://www.openicpsr.org/openicpsr/project/116581/version/V1/view?path=/openicpsr/116581/fcr:versions/V1/README.txt&type=file
+#The ReadMe describes what all the code and files are, but it is not super descriptive
+#However, one code file creates all the tables. I can see what data was used to create
+#the graph on page 315 and work backwards to find the data that was used.
+
+
+
