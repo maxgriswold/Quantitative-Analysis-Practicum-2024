@@ -1,0 +1,24 @@
+.reveal section figcaption {
+  font-size: 0.4em !important;
+  padding:0px !important;
+  bottom:0px !important;
+  right:200px !important;
+  position:absolute !important;
+}
+
+.reveal .slide-logo {
+  max-height: 6rem !important;
+  bottom: -2px;
+  right: 10px;
+}
+
+.reveal .slides section>h1{
+  background-color: #cbc3e3 !important;
+}
+
+.v-center-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 90%;
+}

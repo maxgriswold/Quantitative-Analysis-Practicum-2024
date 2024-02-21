@@ -1,0 +1,345 @@
+---
+title: "Mining and Conflict"
+output:
+  html_notebook: default
+  word_document: default
+---
+I’m broadly interested in examining the differential impacts of critical mineral mining projects relative to mineral processing projects in developing countries. Recent efforts by Indonesia and others to limit exports of raw mineral materials indicate that developing countries are increasingly looking to move up the critical mineral supply chain. Policymakers in the US and other developed countries have also begun to advocate for the development of processing capacity as a means of avoiding the resource curse and promoting more responsible investments in international mining. While existing research has examined the effect of mining projects on local employment and conflict levels, little is known about the impact investments in the more downstream portions of mineral supply chains. This research would fill an important gap by providing insight into potential differences between mining and processing projects, and the extent to which the latter provides a pathway to improving human security in developing countries.
+
+I have three datasets that I'm working with:
+
+1) Spatial database from the US Geological Survey that includes information on the location of major mineral deposits around the world.
+
+2) The Africa Power Mining Projects Database published by the World Bank, which shows ongoing and forthcoming mining projects in Africa categorized by the type of mineral, ore grade, size of the project. The database draws on basic mining data from Infomine surveys, the United States Geological Survey, annual reports, technical reports, feasibility studies, investor presentations, sustainability reports on property-owner websites or filed in public domains, and mining websites (Mining Weekly, Mining Journal, Mbendi, Mining-technology, and Miningmx). Comprising 455 projects in 28 SSA countries with each project’s ore reserve value assessed at more than $250 million, the database collates publicly available and proprietary information. It also provides a panoramic view of projects operating in 2000–12 and anticipated demand in 2020. The analysis is presented over three timeframes: pre-2000, 2001–12, and 2020 (each containing the projects from the previous period except for those closing during that previous period).
+
+3) Data from the Armed Conflict Location & Event Data Project, which collects reported information on the type, agents, location, date, and other characteristics of political violence events, demonstration events, and other select non-violent, politically-relevant developments in every country and territory in the world. ACLED focuses on tracking a range of violent and non-violent actions by or affecting political agents, including governments, rebels, militias, identity groups, political parties, external forces, rioters, protesters, and civilians.
+
+My research design consists of two parts:
+
+**Part 1:** This is going to be a descriptive analysis and I might actually do this one after part 2 because the USGS data is harder to work with. But basically I would just be looking at whether conflict occurs at higher concentrations in places with significant mineral deposits in SSA, using an approach similar to [Max's gun violence paper](https://link.springer.com/article/10.1007/s10940-022-09560-x).
+
+**Part 2:** The World Bank data has a variable for "extent of processing." My plan is to test whether there's a differential effect on local conflict of higher value vs. lower value mining projects.
+
+**Mineral Resources to Conflict Mechanisms:**
+1. Resource Competition: The presence of valuable mineral resources can lead to competition among individuals, groups, or even nations for control over those resources. This competition can escalate into conflicts, ranging from disputes over land rights to armed conflict over control of mines.
+
+2. Economic Disparities: The extraction and trade of mineral resources can exacerbate economic disparities within local communities. While some individuals or groups may benefit financially from resource extraction through employment or business opportunities, others may feel marginalized or excluded from the economic benefits. This disparity can create tensions and conflicts within the community.
+
+3. Environmental Degradation: Mineral extraction often involves significant environmental impacts, such as deforestation, water pollution, and habitat destruction. Local communities may oppose mining operations due to concerns about the loss of livelihoods, damage to ecosystems, and health risks associated with pollution. Environmental conflicts can arise between mining companies, local communities, and environmental advocacy groups.
+
+4. Land Rights and Displacement: Mining activities may require large tracts of land, leading to conflicts over land rights and displacement of local communities. Indigenous peoples and marginalized groups, in particular, may face displacement from their traditional lands, leading to protests, resistance, and sometimes violent conflict.
+
+5. Governance Issues: Weak governance, corruption, and lack of transparency in the management of mineral resources can contribute to conflicts. Inadequate regulation and enforcement of environmental and social standards, as well as disputes over revenue sharing and benefit distribution, can further fuel tensions and grievances within communities.
+
+6. External Actors: The involvement of external actors, such as multinational corporations, foreign governments, and armed groups, in mineral extraction can complicate local dynamics and increase the risk of conflict. External actors may exploit local resources for their own benefit, exacerbating existing tensions and contributing to instability.
+
+```{r starting up}
+rm(list = ls())
+
+#Set working directory
+setwd("C:/Users/yoshiara/OneDrive - RAND Corporation/Desktop/max's class/")
+
+#Read in USGS mineral deposit data (world)
+deposit <-read.csv("deposit.csv")
+
+#Read in mining project data (Africa only)
+mining <-read.csv("africapowerminingprojectsdatabase.csv")
+
+#Read in conflict data (Africa only)
+acled <- read.csv("1997-01-01-2024-01-01-Eastern_Africa-Middle_Africa-Northern_Africa-Southern_Africa-Western_Africa.csv")
+
+#What variables do I have?
+ls(acled)
+ls(deposit)
+ls(mining)
+```
+
+**Mining project data:** Here I'm just exploring my data, seeing is there are any interesting patterns. 
+
+```{r projects by year}
+
+project_counts <- table(mining$Project.Inception..Year.)
+
+# Create a bar plot
+barplot(project_counts, 
+        main = "Number of Projects by Project Inception Year", 
+        xlab = "Project Inception Year", 
+        ylab = "Number of Projects",
+        col = "skyblue",
+        border = "black")
+
+```
+
+```{r projects by commodity}
+
+mining$mine_id <- seq(length.out = nrow(mining))
+
+library(dplyr)
+commodity_counts <- mining %>%
+  group_by(Commodity) %>%
+  summarise(mine_id = n())
+
+library(ggplot2)
+ggplot(commodity_counts, aes(x = mine_id, y = reorder(Commodity, mine_id))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Mines by Commodity Type",
+       x = "Number of Mines",
+       y = "Commodity Type") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.background = element_rect(fill = "white")) 
+
+```
+
+
+
+```{r projects by country}
+
+country_counts <- mining %>%
+  group_by(Country) %>%
+  summarise(mine_id = n())
+
+library(ggplot2)
+ggplot(country_counts, aes(x = mine_id, y = reorder(Country, mine_id))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Mines by Country",
+       x = "Number of Mines",
+       y = "Country") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 6),
+        panel.background = element_rect(fill = "white")) 
+
+```
+
+
+```{r projects by processing extent}
+
+ processing_counts <- mining %>%
+  group_by(Extent.of.Processing) %>%
+  summarise(mine_id = n())
+
+library(ggplot2)
+ggplot(processing_counts, aes(x = mine_id, y = reorder(Extent.of.Processing, mine_id))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Projects by Level of Processing",
+       x = "Number of Mines",
+       y = "Extent of Processing") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.background = element_rect(fill = "white")) 
+
+```
+
+**Conflict data:** Here I'm just exploring my data, seeing is there are any interesting patterns. 
+```{r conflict by year}
+
+acled_minus_2024 <- subset(acled, year <2024)
+conflict_year <- table(acled_minus_2024$year)
+
+barplot(conflict_year, 
+        main = "Number of Conflicts By Year", 
+        xlab = "Conflict Event Year", 
+        ylab = "Number of Conflicts",
+        col = "skyblue",
+        border = "black")
+
+```
+```{r conflict by country}
+
+conflict_country <- acled %>%
+  group_by(country) %>%
+  summarise(event_id_cnty = n())
+
+library(ggplot2)
+ggplot(conflict_country, aes(x = event_id_cnty, y = reorder(country, event_id_cnty))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Conflict Events by Country",
+       x = "Number of Conflict Events",
+       y = "Country") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 4),
+        panel.background = element_rect(fill = "white")) 
+
+```
+```{r conflict by type}
+
+conflict_subevent <- acled %>%
+  group_by(sub_event_type) %>%
+  summarise(event_id_cnty = n())
+
+library(ggplot2)
+ggplot(conflict_subevent, aes(x = event_id_cnty, y = reorder(sub_event_type, event_id_cnty))) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Number of Conflict Events by Event TYpe",
+       x = "Number of Conflict Events",
+       y = "Event Type") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 7),
+        panel.background = element_rect(fill = "white")) 
+```
+Now I want to see whether there is some sort of relationship, at the country level, between the average annual number of conflict and total mining projects. Looks like SA is a huge outlier!
+
+```{r scatter mines conflict}
+#Generate separate variables for lat and long for the mining dataset (current format is (lat, long))
+library(tidyr)
+mining <- separate(mining, col = Mine.Location, into = c("Latitude", "Longitude"), sep = ", ", remove = FALSE)
+
+# Remove parentheses from latitude and longitude columns
+mining$Latitude <- gsub("\\(", "", mining$Latitude)
+mining$Longitude <- gsub("\\)", "", mining$Longitude)
+
+# Convert latitude and longitude columns to numeric
+mining$Latitude <- as.numeric(mining$Latitude)
+mining$Longitude <- as.numeric(mining$Longitude)
+
+#change lat and long to lower case
+names(mining)[which(names(mining) == "Latitude")] <- "latitude"
+names(mining)[which(names(mining) == "Longitude")] <- "longitude"
+
+# Filter mining_data to include only rows with complete latitude and longitude information
+mining_complete <- mining[complete.cases(mining$latitude, mining$longitude), ]
+
+#change DRC and Rep of Congo values to match acled
+
+mining_complete$Country[mining_complete$Country == "Congo, Dem. Rep. of"] <- "Democratic Republic of Congo"
+mining_complete$Country[mining_complete$Country == "Congo, Rep. of"] <- "Republic of Congo"
+
+#create a new mining dataset that only has projects initiated on or after 1997
+subset_mining <- subset(mining_complete, Project.Inception..Year. >=1997)
+
+unique(subset_mining$Project.Inception..Year.) #ok that worked
+
+
+
+#create a dataset of total mines by country
+subset_mining$mine_id <- seq(length.out = nrow(subset_mining))
+
+total_mines_by_country <- aggregate(mine_id ~ Country, data = subset_mining, FUN = length)
+
+# Rename the count column to Total_Mines
+names(total_mines_by_country)[2] <- "Total_Mines"
+
+#now create a dataframe of average conflict by country
+# Assuming you have a dataframe named conflict_data containing columns conflict_id, country, and year
+
+# Calculate the total number of conflicts per country
+conflicts_per_country <- aggregate(event_id_cnty ~ country, data = acled, FUN = length)
+
+# Calculate the total number of years per country
+years_per_country <- aggregate(year ~ country, data = acled, FUN = function(x) length(unique(x)))
+
+# Merge the two datasets
+conflicts_years_per_country <- merge(conflicts_per_country, years_per_country, by = "country")
+
+# Calculate the average number of conflicts across years for each country
+conflicts_years_per_country$average_conflicts <- conflicts_years_per_country$event_id_cnty / conflicts_years_per_country$year
+
+# Remove unnecessary columns
+conflicts_years_per_country <- subset(conflicts_years_per_country, select = c("country", "average_conflicts"))
+
+# Print the resulting dataframe
+print(conflicts_years_per_country)
+
+#change mining df to lower case country
+names(total_mines_by_country)[which(names(total_mines_by_country) == "Country")] <- "country"
+
+#now merge mining and acled and plot
+# Assuming you have datasets total_mines_by_country and conflicts_years_per_country containing information on total mines by country and average conflict by country, respectively
+
+# Merge the datasets based on the country column
+merged_data <- merge(total_mines_by_country, conflicts_years_per_country, by = "country", all = TRUE)
+
+# Plot the scatterplot
+plot(x = merged_data$Total_Mines, 
+     y = merged_data$average_conflicts,
+     main = "Total Mines vs Average Conflict by Country",
+     xlab = "Total Mines",
+     ylab = "Average Conflict",
+     col = "blue", 
+     pch = 16)  # Use filled circles as points
+# Add text labels for each point (adjust the position and offset as needed)
+text(x = merged_data$Total_Mines, y = merged_data$average_conflicts, labels = merged_data$country,
+     pos = 3, offset = 0.5, cex=.5)
+```
+
+What happens to this relationship when I remove South Africa? Is this relationship different between low and high processing projects?
+```{r}
+
+#Drop South Africa
+merged_data_noSA <-subset(merged_data, country !="South Africa")
+
+#Gen a dataset with number of mines by country and processing type
+mine_count_processing_country <- aggregate(mine_id ~ Country + Extent.of.Processing, data = subset_mining, FUN = length)
+
+names(mine_count_processing_country)[3] <- "Total_Mines"
+
+names(mine_count_processing_country)[which(names(mine_count_processing_country) == "Country")] <- "country"
+
+# Merge with ACLED
+merged_data_processing <- merge(mine_count_processing_country, conflicts_years_per_country, by = "country", all = TRUE)
+
+#Remove South Africa
+merged_data_noSA_processing <- subset(merged_data_processing, country !="South Africa")
+
+# Subset the data for no processing mines
+no_processing_mines <- subset(merged_data_noSA_processing, Extent.of.Processing %in% c("crushed", "intermediate", "separation"))
+
+# Subset the data for processing mines
+processing_mines <- subset(merged_data_noSA_processing, Extent.of.Processing %in% c("refined", "processed", "smelted"))
+
+# Fit linear regression models for each subset
+reg_no_processing <- lm(average_conflicts ~ Total_Mines, data = no_processing_mines)
+reg_processing <- lm(average_conflicts ~ Total_Mines, data = processing_mines)
+
+# Scatterplot with regression lines
+plot(x = merged_data_noSA$Total_Mines, 
+     y = merged_data_noSA$average_conflicts,
+     main = "Total Mines vs Average Conflict (High & Low Processing)",
+     xlab = "Total Mines",
+     ylab = "Average Annual Conflict",
+     col = "blue", 
+     pch = 16,
+     cex.main=.8,
+     cex.lab = .8)   # Use filled circles as points
+
+# Add regression lines
+abline(reg_no_processing, col = "red", lwd = 2)  # Regression line for no processing mines
+abline(reg_processing, col = "green", lwd = 2)  # Regression line for processing mines
+
+# Add text labels for each point (adjust the position and offset as needed)
+text(x = merged_data_noSA$Total_Mines, y = merged_data_noSA$average_conflicts, labels = merged_data_noSA$country,
+     pos = 3, offset = 0.5, cex=.3)
+
+```
+Now I'm generating a dataset with conflict contained with 32km of a mining project in order to do a D-in-D analysis.
+```{r}
+# Trying to summarize the number of conflict events by year within 20 miles of a mineral deposit in africa by year
+# Install and load necessary packages
+library(sf)
+library(dplyr)
+library(data.table)
+library(units)
+
+
+# Create sf objects with geometry for conflict/acled data and mining data
+acled_sf <- st_as_sf(acled, coords = c("longitude", "latitude"), crs = 4326)
+mining_sf <- st_as_sf(mining_complete, coords = c("longitude","latitude"), crs = 4326)
+
+# MG Edits: Make sure there's potential overlap:
+plot(st_geometry(acled_sf))
+plot(st_geometry(mining_sf), col = "red", add = T)
+
+# Add buffer around mining projects
+mining_buffered <- mining_sf %>%
+                   st_buffer(dist = units::set_units(32, "km"))
+
+# MG Edits: Buffering looks like it's working now.
+plot(st_geometry(acled_sf))
+plot(st_geometry(mining_buffered), col = "red", add = T, pch = 3)
+
+#Now try with full data
+joined_data <- st_join(acled_sf, mining_buffered, join = st_within, left = F)
+
+```
+
+

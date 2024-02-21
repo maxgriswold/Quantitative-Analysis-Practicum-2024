@@ -1,0 +1,301 @@
+---
+title: "model_iteration_and_simulation"
+author: "Max Griswold"
+date: "2024-02-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(data.table)
+library(ggplot2)
+
+cps <- fread("./data/cps/cps_5%_sample_processed.csv")
+
+# Hold onto observations where individuals worked the entire year and they
+# made more than zero dollars but had less than 400k a year:
+cps <- cps[employed_weeks == 52 & p_income > 0 & p_income <= 4e5,]
+
+# Given the large sample size, let's create a variable which we can use to 
+# summarize predictions and errors at varying discrete income-amounts
+cps[, income_discrete := cut(p_income, breaks = seq(0, 4e5, 5e3),
+                             labels = seq(0, 4e5 - 5e3, 5e3), 
+                             include.lowest = T)]
+
+# Cut creates a factor variable and to back out a numeric variable for plotting,
+# we need to first convert the factor to a character, then a numeric. If we
+# convert to a numeric first, we will get the factor level rather than the
+# factor label.
+
+cps[, income_discrete := as.numeric(as.character(income_discrete))]
+
+```
+
+If I was doing a fuller analysis, I would carefully investigate how my restrictions on the dataset might affect selection into the sample. Who is being left out by this choice? How might this decision bias the conclusions of my analysis?
+
+Before modeling, I'll make some useful functions I'll continue to reuse throughout this notebook. I'll discuss these each in turn when I call them:
+
+```{r useful_functions}
+
+# Summarize model predictions and error at various discrete income levels:
+summarize_gof <- function(df, mod, exponentiate = F){
+  
+  if (exponentiate){
+    df[, pred := exp(predict(mod, type = "response"))]
+  }else{
+    df[, pred := predict(mod, type = "response")]
+  }
+  
+  df[, error := p_income - pred]
+  
+  df[, pred_mean := mean(.SD$pred), by = income_discrete]
+  df[, pred_lower  := pred_mean - 1.96*sd(.SD$pred), by = income_discrete]
+  df[, pred_upper  := pred_mean + 1.96*sd(.SD$pred), by = income_discrete]
+  
+  df[, err_mean := mean(.SD$error), by = income_discrete]
+  df[, err_lower  := err_mean - 1.96*sd(.SD$error), by = income_discrete]
+  df[, err_upper  := err_mean + 1.96*sd(.SD$error), by = income_discrete]
+  
+  df_summary <- unique(df[, .(income_discrete,
+                              pred_mean, pred_lower, pred_upper,
+                              err_mean, err_lower, err_upper)])
+  
+}
+
+# Predicted v. observed densities:
+pred_obs_density <- function(df, mod, exponentiate = F){
+  
+  if (exponentiate){
+    df[, pred := exp(predict(mod, type = "response"))]
+  }else{
+    df[, pred := predict(mod, type = "response")]
+  }
+  
+  # Predicted v. observed densities:
+  ggplot(df) +
+    geom_density(aes(x = p_income), fill = "#bcabc1") +
+    geom_density(aes(x = pred), fill = "#b3d5d3") +
+    lims(x = c(0, 2e5)) +
+    theme_bw()
+  
+}
+
+
+# Predicted v observed plot:
+pred_v_obs <- function(df, mod, exponentiate = F){
+  
+  df_sum <- summarize_gof(df, mod, exponentiate)
+
+  ggplot(df_sum, aes(x = pred_mean, y = income_discrete)) +
+    geom_linerange(aes(xmin = pred_lower, xmax = pred_upper), color = "#bcabc1", alpha = 0.8) +
+    geom_point(size = 1, color = '#88419d') +
+    geom_abline(intercept = 0, slope = 1, size = 1, linetype = 21) +
+    labs(y = "Predicted", x = "Observed") +
+    theme_bw()
+  
+}
+
+# Error v. observed
+error_v_preds <- function(df, mod, exponentiate = F){
+  
+  if (exponentiate){
+    df[, pred := exp(predict(mod, type = "response"))]
+  }else{
+    df[, pred := predict(mod, type = "response")]
+  }
+  
+  df[, error := p_income - pred]
+  
+  cps[, pred_discrete := cut(pred, breaks = seq(0, 4e5, 5e3),
+                             labels = seq(0, 4e5 - 5e3, 5e3), 
+                             include.lowest = T)]
+  
+  cps[, pred_discrete := as.numeric(as.character(pred_discrete))]
+  
+  df[, err_mean := mean(.SD$error), by = pred_discrete]
+  df[, err_lower  := err_mean - 1.96*sd(.SD$error), by = pred_discrete]
+  df[, err_upper  := err_mean + 1.96*sd(.SD$error), by = pred_discrete]
+  
+  df_sum <- unique(df[, .(pred_discrete, err_mean, err_lower, err_upper)])
+  
+  print(df_sum)
+  
+  ggplot(df_sum, aes(y = err_mean, x = pred_discrete)) +
+    geom_linerange(aes(ymin = err_lower, ymax = err_upper), 
+                   color = "#bcabc1", size = 1) +
+    geom_point(size = 2, color = '#88419d') +
+    geom_abline(intercept = 0, slope = 0, size = 1, linetype = 21) +
+    lims(x = c(0, 2.2e5)) +
+    labs(y = "Error", x = "Predicted") +
+    theme_bw()
+  
+}
+
+```
+
+## Model 1: How does income status relate to hours worked?
+
+```{r}
+
+mod1 <- glm(data = cps, formula = p_income ~ hours_per_week)
+
+print(summary(mod1))
+
+pred_obs_density(cps, mod1)
+
+```
+
+We can immediately see from observing the density of predicted values v. the density of observed values that we have some problems. For one, we have that large spike at around \$75,000. We also aren't predicting a smooth distribution compared to the observed distibution (in purple). Let's also try looking at observed values v. predicted values as a scatter plot. Since the dataset is really large, let's instead look at summary statistics of predictions using mean and standard error at specific income levels. 
+
+```{r}
+
+pred_v_obs(cps, mod1)
+
+```
+
+The obvious takeaway for me is that we should consider logging the outcome variable. Let's also see how error correlates with the observed values:
+
+```{r}
+
+error_v_preds(cps, mod1)
+
+```
+
+Ideally, this should be a flat line. We can see error is decreasing with observed values so we might need to transform the outcome, use a different link for the error term, or needing additional predictors.
+
+Let's try using a log-link, along with including fixed effects for year and state to see if that improves the model.
+
+## Model 2: Does a log-link and fixed effects for state and year improve the model?
+
+```{r}
+
+mod2 <- glm(data = cps, 
+            formula = p_income ~ hours_per_week + state + as.factor(year), 
+            family = gaussian(link = "log"))
+
+print(summary(mod2))
+
+pred_obs_density(cps, mod2)
+
+```
+
+The density seems to be improving a bit (if our model was perfect, these densities would overlap 1 to 1). How do predictions compare to observed values when we look at the scatter plot of predictions v. observed, and error v. observed?
+
+
+```{r}
+
+pred_v_obs(cps, mod2)
+
+error_v_preds(cps, mod2)
+
+```
+
+Not too much better, though there's some slight improvements. Let's also look at how this differs when using a log outcome, rather than assuming the mean of the response is log distributed (e.g. $E(log(y))$ or $log(E(y))$?) 
+
+```{r}
+
+# Model 2.2: Log outcome instead?
+mod2.2 <- glm(data = cps, formula = log(p_income) ~ hours_per_week + state + as.factor(year))
+
+print(summary(mod2.2))
+
+pred_obs_density(cps, mod2.2, T)
+
+pred_v_obs(cps, mod2.2, T)
+
+error_v_preds(cps, mod2.2, T)
+
+```
+
+Not a huge difference in performance. So let's add demographic variables and interactions, to see how that improves the fit. 
+
+# Model 3: What if we included demographic variables and interactions?
+
+```{r}
+
+# Create 5-year age groups to try and capture non-linear effects by age:
+cps[, age_group := cut(age, 
+                      breaks = c(18, 25, seq(30, 75, 5), 100),
+                      labels = c(18, 25, seq(30, 75, 5)),
+                      include.lowest = T)]
+
+# Turn race into a factor variable, with the reference category set to white.
+cps[, race := factor(race, levels = c("white", "black", "asian", "indigenous", 
+                                      "multiple", "other"))]
+
+form3 <- formula(log(p_income) ~ hours_per_week + 
+                   hours_per_week*age_group + 
+                   hours_per_week*race +
+                   hours_per_week*sex +
+                   hours_per_week*marital_status +
+                   state + as.factor(year))
+
+mod3 <- glm(data = cps, 
+            formula = form3)
+
+summary(mod3)
+
+```
+
+Lots of coefficient values but let's see if these make sense, starting with the main terms:
+
+- Income increases with hours per week. Makes sense.
+- Income increases with age. This makes sense, though I would have expected to see this effect decrease for older age groups.
+- Individuals who are non-white make less than white individuals, though Asian individuals make more. This follows previous findings.
+- Men make more than women. This also follows previous findings.
+- Income is increasing by year.
+- Married individuals make more than single individuals. 
+
+And the interaction terms. These are much more difficult to interpret so we might want to simulate responses to better understand these terms.
+
+- Earnings decrease with hours per week for the largest age groups (though effect is small)
+- Earnings decrease for hours per week for males.
+- Earnings decrease for hours per week for asian individuals but increase for other groups.
+- Earnings increase with marital status.
+
+Let's look at how the model performed, then let's try simulating effects to better understand the interaction terms.
+
+```{r}
+
+pred_obs_density(cps, mod3, T)
+
+pred_v_obs(cps, mod3, T)
+
+error_v_preds(cps, mod3, T)
+
+```
+
+We see big improvements in the predicted density compared to the observed density. We're still struggling to recover predicted values though and seem to overestimate income in low-income groups and underestimate high income groups. We probably need a different family and link function (maybe a gamma?). The model is doing better but it's still far from perfect. Error also still increases with income, though this model does seem like an improvement over the previous two.
+
+Let's now extract coefficient values and try to simulate effects to make them more interpretable for lay audiences.
+
+```{r sim_coefficients}
+
+# I'm using a library to generate simulated effects, however this isn't 
+# too difficult to do by hand. See the reading this week for more
+# detail on the approach, along with the vignette for clarify:
+# https://cran.r-project.org/web/packages/clarify/vignettes/clarify.html
+
+library(clarify)
+
+# As an alternative to clarify, there is also the marginaleffects package, 
+# which I would also highly recommend (slightly different framework but 
+# still pretty intuitive).
+
+sim_coef <- sim(fit = mod3, n = 100)
+
+# Let's calculate average marginal effects
+# for hours worked per week by sex
+ame_hours <- sim_adrf(sim_coef, 
+                      var = "hours_per_week", 
+                      at = seq(10, 80, 10),
+                      contrast = "amef",
+                      by = c("sex"))
+
+plot(ame_hours)
+
+```
