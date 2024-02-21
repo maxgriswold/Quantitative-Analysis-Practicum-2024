@@ -39,11 +39,11 @@ hospital_data <- read_dta("HCRIS hospital characteristics.dta")
 #Can use read.table function to read in the data
 #I think this is how I use the function in this setting, since the data is separated
 #by | and has a header
-employment_data <- read.table("EC1231SR2.dat", header = TRUE, sep = '|')
+industry_data <- read.table("EC1231SR2.dat", header = TRUE, sep = '|')
 #Works! This dataset has industry concentrations across the US at industry level
 #There is a geocode ID but seems to be the same for the entire dataset
 #Let's confirm that
-unique(employment_data$GEO_ID)
+unique(industry_data$GEO_ID)
 #Yup, but since there are several geo columns in the data, maybe a different file
 #has smaller geographic levels
 
@@ -53,7 +53,23 @@ unique(employment_data$GEO_ID)
 #Link: https://www.openicpsr.org/openicpsr/project/116581/version/V1/view?path=/openicpsr/116581/fcr:versions/V1/README.txt&type=file
 #The ReadMe describes what all the code and files are, but it is not super descriptive
 #However, one code file creates all the tables. I can see what data was used to create
-#the graph on page 315 and work backwards to find the data that was used.
+#the graph on page 315 (Figure 2) and work backwards to find the data that was used.
+
+#The code is Stata code. It seems like the data used to make the graph is in the 
+#census/rdc_extract folder, titled "share trends.csv".
+#This file is aggregated market concentrations over time at the ZIP code, county, and 
+#national level. Interesting, but I would prefer unaggregated. I'll try next examining
+#the code that made this file.
+
+#The ReadMe states that the Census_Data_Processing.do file creates the "share trends.csv" file.
+
+#From what I can tell from looking at that do file and the ReadMe, the concentration
+#microdata is confidential and can only be accessed at "Federal Statistical Research Data Centers"
+#One of these is located at UCLA and RAND students/faculty can gain access, but
+#I probably don't this for this project.
+
+#For this project, I'll have to stick with national data and the aggregated state, county, and ZIP 
+#code data.
 
 
 
