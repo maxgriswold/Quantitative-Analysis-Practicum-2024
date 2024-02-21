@@ -1,0 +1,112 @@
+---
+title: "Lecture 7: Model building and evaluation"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: February 19, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: custom.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Plan for today
+
+::: fragment
+- Discuss how to build models through iteration.
+:::
+
+::: fragment
+- Go over model evaluation strategies.
+:::
+
+::: fragment
+- Demonstrate how simulation methods can improve analysis presentation.
+:::
+
+## Today's resources
+
+::: {style="font-size: 80%;"}
+Today's lecture draws heavily from Gelman and Hill. This textbook contains a wealth of useful information on building models. For today, we are focusing on building and evaluating predictive models, rather than causal models.
+::: 
+
+![Gelman and Hill, 2008](./figs/gelman_4_6.png){width="70%"}
+
+## Model building principles
+
+::: fragment
+- Have a theoretical model in mind before starting your analysis
+:::
+
+::: fragment
+- Start with simple models and methods, then introduce complexity as you check for problems.
+:::
+
+
+::: fragment
+- Fit lots of models and rely on figures to diagnose problems rather than only goodness-of-fit statistics.
+:::
+
+## Which variables to include?
+
+::: fragment
+* Start with all input variables you expect will be important in predicting the outcome.
+:::
+::: fragment
+::: {style="font-size: 80%;"}
+  (keeping in mind model assumptions and pitfalls, such as conditioning on post-treatment variables)
+:::
+:::
+
+::: fragment
+* If an estimate has a large effect, consider including interaction terms.
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+  (keeping in mind sample size limitations. You need about 16x sample to estimate an interaction compared to a main effect [Gelman, 2018](https://statmodeling.stat.columbia.edu/2018/03/15/))
+:::
+:::
+
+##  Which variables to exclude?
+
+::: fragment
+* If a covariate is not significant and has an expected sign, it doesn't hurt to keep them in.
+:::
+
+::: fragment
+* If a covariate is not significant and has an unexpected sign, you might want to remove it (implicitly set it's coefficient to zero).
+:::
+
+::: fragment
+* If a covariate is significant and has an unexpected sign, put on you detective hat. Are there latent variables?
+:::
+
+## Evaluating model performance
+
+::: {style="font-size: 80%;"}
+For predictive models, the critical question is whether our model correctly predicts the outcome. We can check our model's performance by looking at three types plots: Empirical density plots, predicted v. observed scatterplots., and error v. predicted value scatterplots.
+:::
+
+::: fragment
+![](./figs/gelman_3_13){width="90%"}
+:::
+
+## Model performance: Density plots
+
+## Model performance: Predicted v. observed scatterplots
+
+##Model performance: Error v. predicted value scatterplots
+
+
+
