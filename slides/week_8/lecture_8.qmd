@@ -1,0 +1,263 @@
+---
+title: "Lecture 8: Reviewing, discussing, and writing reports"
+author: Max Griswold
+institute: Pardee RAND Graduate School
+date: February 26, 2024
+
+format:
+  html: 
+    embed-resources: true
+  revealjs: 
+    logo: prgs.png
+    css: custom.css
+    slide-number: true
+    show-slide-number: all
+    auto-stretch: false
+    chalkboard: 
+      theme: chalkboard
+      buttons: false
+latex-tinytex: false 
+reference-location: section
+---
+
+## Plan for today
+
+::: fragment
+- Discuss format and norms of peer review.
+:::
+
+::: fragment
+- Briefly cover seminar discussion and academic writing advice.
+:::
+
+::: fragment
+- Go over format for final workshops
+:::
+
+## Peer review - Purpose
+
+- Peer review is narrowly defined: The purpose is to validate the work and improve (scientific) quality.
+
+::: fragment
+- Typically single-blinded, though double-blind is becoming more common.
+:::
+
+::: fragment
+- In practice, working the refs and networking can be important to get past peer-review.
+:::
+
+## Peer review - norms
+
+![](./figs/double_v_single.png)
+
+## Peer review - The process
+
+::: {style="font-size: 80%;"}
+- Peer review follows a standard practice across journals.
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Authors submit journal article and a cover letter to the submission portal.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Editors reach out to possible experts and get confirmation they'll review.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Reviewers read article, write 1-2 page review, score submission, and send comments to editor.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- The editor makes a decision, based off reviews and their own judgment. If there are requested revisions, the process repeats.
+:::
+:::
+
+## Peer review - The process
+
+![](./figs/lancet_portal.png)
+
+## Peer review - Tips
+
+- Read the paper twice. First arrive at an initial impression and a summary. Second, revise summary and drill down on critiques.
+
+::: fragment
+- Look closely at equation, tables, and figures. Does this evidence align with the written text?
+:::
+
+::: fragment
+- Be a detective and follow the references. Do they actually support an argument? Where are cites needed?
+:::
+
+::: fragment
+- If possible, sit on the paper for a day and come back to it. What stayed with you?
+:::
+
+## Peer review - Format
+
+![](./figs/lancet_portal_2.png)
+
+## Peer review - Format
+
+::: {style="font-size: 80%;"}
+- Most reviews are short (1-2 pages) and to-the-point.
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Reviews usually start with a summary of the article's thesis, main points, positive traits, and professional boilerplate. Do not state to the author if you are accepting or rejecting the article.
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Major criticism focuses on method validity and arguments. Are the findings suppported by the evidence?
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Minor criticism focuses on clarity and presentation. Is the author's point clear?
+:::
+:::
+
+::: fragment
+::: {style="font-size: 80%;"}
+- Reviewers are not responsible for style!
+:::
+:::
+
+## Peer review - Format
+
+![](./figs/lancet_portal_3.png)
+
+## Peer review - Format
+
+![](./figs/lancet_portal_4.png)
+
+## Seminar discussions 
+
+- We all share responsibility in making seminar discussions lively and beneficial (not just the author).
+
+::: fragment
+- For the speaker: Ask the audience directly what you want from the seminar!
+:::
+
+::: fragment
+- For discussants: Be clear, positive, and respectful with comments. How can you provide feedback and questions using a collaborative framing?
+:::
+
+## Seminar discussions -  examples
+
+- Consider framing questions and comments personally, rather than generally.
+
+::: fragment
+Rather than, "This is not the right way to do method X", perhaps, "I would consider trying to apply method X like this".
+:::
+
+::: fragment
+- Clarity matters - if you can't follow an argument, this comment can be helpful for speakers.
+:::
+
+::: fragment
+"Figure X wasn't entirely clear to me. Could you help me understand what this is showing?"
+:::
+
+## Seminar discussions -  examples
+
+- Positive feedback can also be helpful for speakers. What worked well?
+
+::: fragment
+"Figure X made this argument clear and convincing."
+:::
+
+::: fragment
+- To make your positive feedback more valuable, perhaps also recommend extensions?
+:::
+
+::: fragment
+"Have you also tried investigating if. . ?"
+:::
+
+::: fragment
+- If possible, please be concise in your remarks! 
+:::
+
+## Writing reports - advice
+
+- Writing content can not be separated from style. Arguments require clarity.
+
+::: fragment
+- Be clear. Do not distract your reader with interjections or waste their time.
+:::
+
+::: fragment
+- Write accessibly. Use plain language and be boring.
+:::
+
+::: fragment
+- Good writing requires good observation. Emulate good reports.
+:::
+
+## Writing reports - advice
+
+- Start early. You need to write and rewrite multiple times. 
+
+::: fragment
+"Easy writing makes hard reading" - McCloskey
+:::
+
+::: fragment
+- Have a specific reader in mind at all times.
+:::
+
+::: fragment
+- Every paragraph should have a clear point and contribute to a broader argument.
+:::
+
+::: fragment
+- Use active language! (e.g., not "active language should be used")
+:::
+
+
+## Writing reports - advice
+
+::: fragment
+- Footnotes are pedantic and should only provide additional sourcing. 
+:::
+
+::: fragment
+- Sourcing should be specific, if permitted!
+:::
+
+::: fragment
+- Play around with your sentences. Tinker. 
+:::
+
+::: fragment
+- Read outloud. How do sentences cohere together?
+:::
+
+## Next week
+
+We'll briefly discuss writing workshops. \
+\
+
+::: fragment
+We will have additional time to cover an additional topic. What would be helpful material to cover?
+:::
+
+\
+\
+
+::: fragment
+Please sign up for a 30 minute workshop session!
+:::
+
