@@ -84,6 +84,9 @@ ACS_nondis_merged_2022 <- subset(ACS_nondis_merged, Year == 2022)
 #Create just 2010 version of the data
 ACS_nondis_merged_2010 <- subset(ACS_nondis_merged, Year == 2010)
 
+#Create just 2019 version of the data
+ACS_nondis_merged_2019 <- subset(ACS_nondis_merged, Year == 2019)
+
 #Create version that shows the change from 2010 to 2022
 ACS_nondis_merged_change <- merge(ACS_nondis_merged_2022, ACS_nondis_merged_2010, by=c("subregion", "region")) 
 ACS_nondis_merged_change$LF_change_NonDis <- ACS_nondis_merged_change$NonDisabled_Percent_LF.x - ACS_nondis_merged_change$NonDisabled_Percent_LF.y
@@ -98,3 +101,8 @@ ACS_combined$LF_change_ratio <- ACS_combined$LF_change / ACS_combined$LF_change_
 ACS_2022_combined <- merge(ACS_nondis_merged_2022, ACS_all_data_merged_2022, by = c("subregion", "region"))
 ACS_2022_combined$Employment_Rate_Gap <-  ACS_2022_combined$Employment_Rate_NonDisabled - ACS_2022_combined$Employment_Rate_Disabled
 ACS_2022_combined$LF_Rate_Gap <- ACS_2022_combined$NonDisabled_Percent_LF - ACS_2022_combined$Disabled_Percent_LF
+
+#Create dataframe that computes 2019 gap between nondisabled and disabled
+ACS_2019_combined <- merge(ACS_nondis_merged_2019, ACS_all_data_merged_2019, by = c("subregion", "region"))
+ACS_2019_combined$Employment_Rate_Gap <-  ACS_2019_combined$Employment_Rate_NonDisabled - ACS_2019_combined$Employment_Rate_Disabled
+ACS_2019_combined$LF_Rate_Gap <- ACS_2019_combined$NonDisabled_Percent_LF - ACS_2019_combined$Disabled_Percent_LF

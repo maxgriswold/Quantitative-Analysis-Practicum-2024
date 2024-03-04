@@ -85,6 +85,9 @@ ACS_all_data_merged_2022 <- subset(ACS_all_data_merged, Year == 2022)
 #Create just 2010 version of the data
 ACS_all_data_merged_2010 <- subset(ACS_all_data_merged, Year == 2010)
 
+#Create just 2019 version of the data
+ACS_all_data_merged_2019 <- subset(ACS_all_data_merged, Year == 2019)
+
 #Create version that shows the change from 2010 to 2022
 ACS_all_data_merged_change <- merge(ACS_all_data_merged_2022, ACS_all_data_merged_2010, by=c("subregion", "region")) 
 ACS_all_data_merged_change$LF_change <- ACS_all_data_merged_change$Disabled_Percent_LF.x - ACS_all_data_merged_change$Disabled_Percent_LF.y

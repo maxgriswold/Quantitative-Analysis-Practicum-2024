@@ -152,3 +152,39 @@ us_counties %>%
         panel.background=element_blank(),
         panel.border=element_blank(),
         panel.grid=element_blank())
+
+#create map of 2019 employment rate gap non-disabled - disabled
+us_counties %>% 
+  left_join(ACS_2019_combined, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Employment_Rate_Gap)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
+
+#create map of 2022 LF rate gap non-disabled - disabled
+us_counties %>% 
+  left_join(ACS_2019_combined, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=LF_Rate_Gap)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
