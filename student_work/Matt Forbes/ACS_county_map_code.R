@@ -26,14 +26,7 @@ p + geom_polygon(color = "gray90", size = 0.1) +
         panel.border=element_blank(),
         panel.grid=element_blank())
 
-#merge on our ACS data to the county map data
-#ACS_all_data_merged_2022$Disabled_Percent_LF <- as.numeric(ACS_all_data_merged_2022$Disabled_Percent_LF)
-#ACS_all_data_merged_2022$Disabled_Percent_LF <- apply(ACS_all_data_merged_2022$Disabled_Percent_LF, 2,            # Specify own function within apply
-                    #function(x) as.numeric(x))
-
-#Merge ACS_all_data_merged_2022 onto us_counties data
-#us_counties_2022 <- merge(us_counties, ACS_all_data_merged_2022, by=c('region', 'subregion' ))
-
+#create map of 2022 disabled percent in the LF
 us_counties %>% 
   left_join(ACS_all_data_merged_2022, by=c('region', 'subregion' )) %>%
   ggplot(aes(x=long,y=lat,group=group, fill=Disabled_Percent_LF)) +
@@ -51,23 +44,111 @@ us_counties %>%
         panel.border=element_blank(),
         panel.grid=element_blank())
 
-# #I will be using the package described on this page: https://urban-institute.medium.com/how-to-create-state-and-county-maps-easily-in-r-577d29300bb2
-# devtools::install_github('UrbanInstitute/urbnmapr')
+#create map of 2022-2010 change disabled percent in the LF
+us_counties %>% 
+  left_join(ACS_all_data_merged_change, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=LF_change)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
 
+#create map of 2022 disabled employment rate
+us_counties %>% 
+  left_join(ACS_all_data_merged_2022, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Employment_Rate_Disabled)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
 
+#create map of 2022-2010 change disabled employment rate
+us_counties %>% 
+  left_join(ACS_all_data_merged_change, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Employment_rate_change)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
 
-# #I will be using the built-in maps found in the tidyverse package
-# # Loading map data
-# counties <- map_data("county")
-# # 
-# # #I used the county-map function defined here: https://www.geeksforgeeks.org/how-to-create-state-and-county-maps-easily-in-r/
-# #  Function to plot maps using in-built map data
-# map <- function(x,y,dataset,fill_column){
-#   p <- ggplot(data = dataset,
-#                mapping = aes(x = x, y = y, group = group, fill = fill_column))
-#   p + geom_polygon() + guides(fill = FALSE)
-#  }
-# # 
-# # US counties by subregion with latitude and longitude
-# map(counties$long,counties$lat,counties,counties$subregion) +
-#   coord_map("albers",  lat0 = 45.5, lat1 = 29.5)
+#create map of 2022-2010 disabled employment change relative to non-disabled
+#Scale on this is really off because some ratios are over -100, might come back to
+us_counties %>% 
+  left_join(ACS_combined, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Employment_rate_change_ratio)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
+
+#create map of 2022 employment rate gap non-disabled - disabled
+us_counties %>% 
+  left_join(ACS_2022_combined, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=Employment_Rate_Gap)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())
+
+#create map of 2022 LF rate gap non-disabled - disabled
+us_counties %>% 
+  left_join(ACS_2022_combined, by=c('region', 'subregion' )) %>%
+  ggplot(aes(x=long,y=lat,group=group, fill=LF_Rate_Gap)) +
+  geom_polygon(color = "gray90", size = 0.1) +
+  #coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  coord_map(projection = "albers", lat0 = 45, lat1 = 55) +
+  scale_fill_continuous(type = "viridis")+
+  #scale_fill_brewer("Oranges")+
+  theme(legend.position="bottom",
+        axis.line=element_blank(),
+        axis.text=element_blank(),
+        axis.ticks=element_blank(),
+        axis.title=element_blank(),
+        panel.background=element_blank(),
+        panel.border=element_blank(),
+        panel.grid=element_blank())

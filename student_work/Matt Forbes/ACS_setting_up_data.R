@@ -10,9 +10,6 @@ setwd("/Users/mforbes/OneDrive - RAND Corporation/Documents/Classes/Quantitative
 #Create a list of the files in this folder
 ACS_files <- list.files()
 
-#Create empty dataframe to append data to
-#This dataframe will contain all relevant ACS data at county-level per year
-#ACS_all_data <- dataframe()
 
 #Create a for-loop that cycles through each of these files
 #I used starter code from here: https://statisticsglobe.com/r-write-read-multiple-csv-files-for-loop
@@ -67,6 +64,7 @@ ACS_all_data_merged <- merge(ACS_all_data_merged, ACS_Not_LF_Disabled, by = c("C
 #This is equal to (employed + unemployed)/(employed+unemployed+not_in_LF)
 ACS_all_data_merged$Disabled_Percent_LF <- (ACS_all_data_merged$'Employed_Disabled_Count' + ACS_all_data_merged$'Unemployed_Disabled_Count')/(ACS_all_data_merged$'Employed_Disabled_Count' + ACS_all_data_merged$'Unemployed_Disabled_Count'+ ACS_all_data_merged$'Not_LF_Disabled_Count')
 colnames(ACS_all_data_merged)[6] <- 'Disabled_Percent_LF'
+ACS_all_data_merged$Employment_Rate_Disabled <- ACS_all_data_merged$'Employed_Disabled_Count' / (ACS_all_data_merged$'Employed_Disabled_Count' + ACS_all_data_merged$'Unemployed_Disabled_Count')
 
 #Create region and subregion variables to help with working with maps in other file
 #the region=state, subregion=county
@@ -86,4 +84,19 @@ ACS_all_data_merged_2022 <- subset(ACS_all_data_merged, Year == 2022)
 
 #Create just 2010 version of the data
 ACS_all_data_merged_2010 <- subset(ACS_all_data_merged, Year == 2010)
+
+#Create version that shows the change from 2010 to 2022
+ACS_all_data_merged_change <- merge(ACS_all_data_merged_2022, ACS_all_data_merged_2010, by=c("subregion", "region")) 
+ACS_all_data_merged_change$LF_change <- ACS_all_data_merged_change$Disabled_Percent_LF.x - ACS_all_data_merged_change$Disabled_Percent_LF.y
+ACS_all_data_merged_change$Employment_rate_change <- ACS_all_data_merged_change$Employment_Rate_Disabled.x - ACS_all_data_merged_change$Employment_Rate_Disabled.y
+
+
+
+
+
+
+
+
+
+
 
