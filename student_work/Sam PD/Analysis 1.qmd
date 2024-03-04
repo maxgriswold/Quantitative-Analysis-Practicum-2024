@@ -1,0 +1,809 @@
+---
+title: "Analysis1Doc"
+execute:
+  echo: false
+  messages: false
+  warning: false
+  error: false
+format: docx
+editor: visual
+---
+
+# How much cannabis do Mexicans use
+
+To the extent of the author?s knowledge, there is no rigorous effort to estimate the size of the cannabis market in Mexico. A study indicated that the surface of marijuana production eradicated from 2007 and 2015 was of 114,360 hectares, pointing Sinaloa as the major productor (36%), followed by Chihuahua (19.5%), and Durango (16.4%) (Resa Nestares, 2016). This number was taken then by the firm New Frontier data as the estimate for the total surface marijuana production in Mexico (New Frontier Data, n.d.). That same report estimated that Mexico had a potential market of 1.3 million of users and highlighted the economic potential of the Mexican production given the already existing price differential with the United States. Currently, the average production cost of a pound of marijuana in legal producer countries is 400-800 dollars, 300-600 greenhouse and 200-300 dollars exterior in Mexico de exterior production costs about 10 dollars. Lastly, another company, Juicy Land, reported that the Mexican market might have a value of 250 million dollars and could create 45,000 employments (Garduño, 2021) although the methodology is not public.
+
+Part of this misinformation problem is that Mexico has not conducted a survey about drug use since 2016 when the government rolled out the National Survey of Alcohol, Tobacco and Drugs Consumption (Encuesta Nacional de Consumo de Alcohol, Tabaco y Drogas ENCODAT) on a one-time basis. This was a probabilistic household survey aimed at population between 12 and 65 years old and representative at the national and state level (Conyemr et al., 1990).
+
+The study will use a confirmatory approach to answer the questions: 1) What is the size of the cannabis market in Mexico in metric tons and profits? and 2) What is the average price paid by consumers? It will combine the use of survey data, following the methodology of studies developed at RAND such as Kilmer et al. did for the US (Kilmer et al., 2011) and Caulkins and Kilmer for the European Union. (European Commission. Directorate General for Justice., 2013). For doing so, the study will use the ENCODAT 2016 information to develop a methodology to use the inforamtion gathered by other sources to answer the research questions.
+
+This first memo intends to analyze the information obtained from ENCODAT.
+
+## Preparing the data we need
+
+For preparing the data set, we upload ENCODAT_2016_2017 and the PPD survey data as well. We make sure to rename the variables with the same labels in both surveys. E.g., gender, region, pm (past-month use), etc.
+
+```{r}
+library("haven")
+library("survey")
+library("srvyr")
+library("gtsummary")
+library("data.table")
+library("forcats")
+library("plyr")
+  library("tidyverse")
+library("here")
+library("ggplot2")
+library("broom")
+
+# setwd("C:\Users\yperezd\Documents\GitHub\Quantitative-Analysis-Practicum-2024\student_work\Sam PD")
+rm(list=ls(all=TRUE))
+
+#Load data 
+encodat <- read_dta(here("Data/ENCODAT_2016_2017_Individual.dta"))
+encodat2 <- subset(encodat, select=c(id_pers, entidad, desc_ent, ds2, ds3, ds5a, ds9, ds16, di1a, di5a, di5a_1, di6a, di8a, ponde_ss))
+encodat2 <- as.data.table(encodat2)
+rm(encodat) #retrieves from memory
+
+ppd <- read_dta(here("Data/ppd.dta"))
+ppd2 <- subset(ppd, select=c(id, p1, estado, p3, p4, p5,p6, p7, p8, p9))
+ppd2 <- as.data.table(ppd2)
+#rm(ppd) #retrieves from memory          
+```
+
+```{r}
+#Recoding and relabeling variables
+setnames(encodat2, c("id", "state_id",  "state", "gender", "age" ,"indigenous", "educ", "occu", "ever", "times" ,"started_py", "py" ,"pm", "weights"))
+setnames(ppd2, c("id", "age", "state_id", "ever", "gender", "educ", "occu", "last_time", "pm_days", "py_days"))
+
+#turning data into factors for the tables
+encodat2$ever <- factor(encodat2$ever)
+encodat2$age <- factor(encodat2$age)
+encodat2$times <- factor(encodat2$times)
+encodat2$started_py <- factor(encodat2$started_py)
+encodat2$py <- factor(encodat2$py)
+
+ppd2$ever <- factor(ppd2$ever)
+ppd2$age <- factor(ppd2$age)
+ppd2$gender <- factor(ppd2$gender)
+
+```
+
+We create age groups and regions according to the 2015 Census to compare Encodat information with population statistics, and to facilitate the survey comparison.
+
+Age groups are: 12 to 21, 22 to 32, 33 to 43, 44 to 54, and 55 to 65.
+
+Region are Centro (CDMX, Guerrero, Hidalgo, Mexico, Morelos, Oaxaca, Puebla and Tlaxcala), Centro Occidente (Aguascalientes, Colima, Guanajuato, Jalisco, Michoacan, Nayarit, Queretaro, San Luis Potosi and Zacatecas), Norte (Baja California, Baja California Sur, Coahuila, Chihuahua, Durango, Nuevo Leon, Sinaloa, Sonora and Tamaulipas) and Sureste (Campeche, Chiapas, Quintana Roo, Tabasco, Veracruz and Yucatan)
+
+```{r}
+#Preparing age groups
+encodat2$age2 <- as.numeric(levels(encodat2$age))[encodat2$age]
+breaks <- c(11, 21, 32, 43, 54, 66)
+encodat2$age2 <- cut(encodat2$age2, breaks=breaks)
+#encodat2$age2 <- factor(encodat2$age2)
+
+
+ppd2$age2 <- as.numeric(levels(ppd2$age))[ppd2$age]
+breaks <- c(11, 21, 32, 43, 54, 66)
+ppd2$age2 <- cut(ppd2$age2, breaks=breaks)
+ppd2$age2 <- factor(ppd2$age2)
+```
+
+```{r}
+#Preparing state regions
+central <- c(9, 12, 13, 15, 17, 20, 21, 29)
+west <- c(1,6,11,14,16,18,22,24,32)
+north <- c(2,3,5,8,10,19,25,26,28)
+southeast <- c(4,7,23,27,30,31)
+
+region_lookup <- data.frame(
+  state_code = c(central, west, north, southeast),  # Combine state codes from all regions
+  region = c(rep("central", length(central)),
+             rep("west", length(west)),
+             rep("north", length(north)),  
+             rep("southeast", length(southeast))) 
+  )
+
+region_lookup <- as.data.table(region_lookup)
+region_lookup[, state_code := as.double(state_code)]
+encodat2[, state_id := as.double(state_id)]
+encodat2 <- merge(encodat2, region_lookup, by.x = "state_id", by.y = "state_code", all.x = TRUE)
+
+ppd2[, state_id := as.double(state_id)]
+ppd2 <- merge(ppd2, region_lookup, by.x = "state_id", by.y = "state_code", all.x = TRUE)
+
+```
+
+```{r}
+#Preparing days in the PM for the PPD data
+ppd2$pm <- ppd2$pm_days
+ppd2$pm <- ifelse(ppd2$pm_days >= 1 & ppd2$pm_days <= 5, 1, ppd2$pm)
+ppd2$pm <- ifelse(ppd2$pm_days >= 6 & ppd2$pm_days <= 19, 2, ppd2$pm)
+ppd2$pm <- ifelse(ppd2$pm_days >= 20, 3, ppd2$pm)
+ppd2$pm <- replace(ppd2$pm, ppd2$pm_days==-1, 4) #-1 is no ha consumido
+ppd2$pm <- replace(ppd2$pm, ppd2$pm_days==0, 4)
+ppd2$pm <- replace(ppd2$pm, ppd2$pm_days==-2, NA) #-2 is no contesto 
+
+#ppd2$pm #let's look at the new values
+#ppd2$pm %>% table()
+#lets see a cross tabulation
+#ppd2 %>%
+#  count(pm_days, pm) %>%
+#  pivot_wider(names_from = pm, values_from = n) %>% View()
+```
+
+```{r}
+#Creating py for ppd
+#ppd2$py <- ppd2$last_time
+#ppd2$py <- ifelse(ppd2$last_time >= 1 & ppd2$last_time <= 3, "No", ppd2$py)
+#ppd2$py <- ifelse(ppd2$last_time >= 3 & ppd2$last_time <= 6, "Yes", ppd2$py)
+#ppd2$py <- replace(ppd2$py, ppd2$last_time==6, NA)
+#ppd2$py <- factor(ppd2$py)
+
+#Last_time is a character variable, so this works better
+ppd2$py <- ppd2$last_time
+ppd2$py <- ifelse(
+  ppd2$last_time %in% c("5) En los últimos 30 días", "4) Hace entre 1 mes y 3 meses", "3) Hace entre 3 y 12 meses"),
+  1,
+  ifelse(
+    ppd2$last_time == "6) No sé/ Prefiero no responder",
+    NA,
+    0
+  )
+)
+
+#ppd2$py %>% table()
+
+#ppd2 %>%
+ # count(last_time, py) %>%
+ # pivot_wider(names_from = py, values_from = n)
+```
+
+```{r}
+#Relabeling responses
+
+labels_age2<- c("12-21", "22-32", "33-43", "44-54", "55-65")
+encodat2$age2<- as.double(encodat2$age2)
+encodat2[, age2 := mapvalues(age2, sort(unique(encodat2$age2)), labels_age2)]
+ppd2$age2<- as.double(ppd2$age2)
+ppd2[, age2 := mapvalues(age2, sort(unique(ppd2$age2)), labels_age2)]
+
+labels_gender<- c("male", "female")
+encodat2$gender<- as.double(encodat2$gender)
+encodat2[, gender := mapvalues(gender, sort(unique(encodat2$gender)), labels_gender)]
+
+labels_gender<- c("female", "male", "non-binary")
+ppd2$gender<- as.double(ppd2$gender)
+ppd2[, gender := mapvalues(gender, sort(unique(ppd2$gender)), labels_gender)]
+
+labels_ever<- c("Yes", "No", NA)
+encodat2$ever<- as.double(encodat2$ever)
+encodat2[, ever := mapvalues(ever, sort(unique(encodat2$ever)), labels_ever)]
+
+labels_ever<- c("Yes")
+ppd2$ever<- as.double(ppd2$ever) 
+ppd2[, ever := mapvalues(ever, sort(unique(ppd2$ever)), labels_ever)]
+
+labels_started_py<- c("Yes", "No")
+encodat2$started_py<- as.double(encodat2$started_py)
+encodat2[, started_py := mapvalues(started_py, sort(unique(encodat2$started_py)), labels_started_py)]
+
+labels_py<- c("Yes", "No")
+encodat2$py<- as.double(encodat2$py)
+encodat2[, py := mapvalues(py, sort(unique(encodat2$py)), labels_py)]
+
+labels_py<- c("No","Yes")
+ppd2$py<- as.double(ppd2$py)
+ppd2[, py := mapvalues(py, sort(unique(ppd2$py)), labels_py)]
+
+labels_pm<- c("1-5 days", "6-19 days", "more than 20 days", "No")
+encodat2$pm<- as.double(encodat2$pm)
+encodat2[, pm := mapvalues(pm, sort(unique(encodat2$pm)), labels_pm)]
+ppd2$pm<- as.double(ppd2$pm)
+ppd2[, pm := mapvalues(pm, sort(unique(ppd2$pm)), labels_pm)]
+
+labels_last_time<- c("More than 3 yrs", "Between 1 and 3 yrs", "Between 3 and 12 mos", "Between 1 and 3 mos", "Last 30 days", "IDK_Prefer not to say")
+#ppd2$last_time<- as.double(ppd2$last_time)
+ppd2[, last_time := mapvalues(last_time, sort(unique(ppd2$last_time)), labels_last_time)]
+
+```
+
+For this analysis, we are using the survey weights for Encodat 2016, as given by the Comision Nacional contra las Adicciones. PPD data is unweighted.
+
+```{r}
+#Setting up the weights
+encodat_w <- svydesign(id=~id, weights=~weights, data=encodat2)
+theme_gtsummary_journal(journal = "jama")
+theme_gtsummary_compact()
+
+ppd2$weights <- data.table(weights = rep(1, nrow(ppd2)))
+ppd_w <- svydesign(id=~id, weights=~weights, data=ppd2)
+#ppd$weights <- rep(1, nrow(ppd))
+#ppd_w <- svydesign(id=~id, weights=~weights, data=ppd)
+```
+
+## ENCODAT and PPD survey gender comparison
+
+According to the 2015 Census, about 48.3% of Mexico's population was male, and 51.7% was female, which aligns with the ENCODAT. PPD respondents, on the other side, were mainly male (57%). Only PPD survey captures non-binary information which totals about 3% of the sample.
+
+```{r}
+#Checking ENCODAT numbers with the CENSUS and comparing PPD
+gender_encodat <- tbl_svysummary(
+  include = c(gender),
+  label = list(gender ~ "gender"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+
+gender_ppd <- tbl_svysummary(
+  include = c(gender),
+  label = list(gender ~ "gender"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)
+
+combined_gender <- tbl_merge( tbls=list(gender_encodat,gender_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_gender
+
+```
+
+## ENCODAT and PPD survey comparison: age
+
+The distribution of the population aged 12 to 65 in Encodat also matches the Census: from 12 to 21 yrs (27.4%), 22 to 32 (25.3%), 33 to 43 (18.8%), 44 to 54 (16.3%) and 55 to 65 (12.2%).
+
+As far as the PPD survey, the results show that respondents from this survey are older, mostly falling within the 22-32 age group, followed by the 33-43 group.
+
+```{r}
+
+#Checking numbers with the CENSUS
+age_encodat <-tbl_svysummary(
+  include = c(age2),
+  label = list(age2 ~ "age"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+
+age_ppd <-tbl_svysummary(
+  include = c(age2),
+  label = list(age2 ~ "age"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)
+
+combined_age <- tbl_merge( tbls=list(age_encodat,age_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_age
+
+
+```
+
+Lastly, distribution of the sample across regions in the Encodat also align to the 2015 Census:
+
+Central region - 37.7% North region - 22.7% West - 23% Southwest - 16.6%
+
+In the PPD sample, on the other hand, it?s visible the high percentage of respondents from the southeast region.
+
+```{r}
+
+#Checking numbers with the CENSUS
+region_encodat <- tbl_svysummary(
+  include = c(region),
+  label = list(region ~ "region"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+
+region_ppd <- tbl_svysummary(
+  include = c(region),
+  label = list(region ~ "region"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)
+
+combined_region <- tbl_merge( tbls=list(region_encodat,region_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_region
+
+```
+
+## Analysis about marihuana use
+
+Now that we check that ENCODAT results match important socio-demographic characteristics in Mexico (gender, age, and regions), and how does the PPD survey differ from Encodat, we can proceed to analyze the information about marijuana use.
+
+### We start with the question: Could you tell me if you have taken, used, tried Marijuana, also called hashish, pot, coffee, yerba, etc. to get high. We present statistics by the overall population, and dissagregated by gender, race and region
+
+Based on the Encodat, about 8.8% or 7.5 million indicated that they had tried marijuana at least once in their lifetimes. Because all PPD survey respondents indicated having used marijuana, which was a condition to continue answering the survey, this section will only include Encodat-based results.
+
+```{r}
+
+tbl_svysummary(
+  include = c(ever),
+  label = list(ever ~ "Ever tried"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+```
+
+Men are 3 times more likely to have used marihuana than women.
+
+```{r}
+
+tbl_svysummary(
+  by = gender,
+  include = c(ever),
+  label = list(ever ~ "Ever tried"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+) %>% 
+  add_p()
+```
+
+Younger people are more likely to have used marijuana, specially those in the 21-32 subgroup, followed by the 12-21 and the 32-43 group.
+
+```{r}
+
+tbl_svysummary(
+  by = age2,
+  include = c(ever),
+  label = list(ever ~ "Ever tried"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+ ) %>% 
+  add_p()
+ 
+```
+
+Lastly, people located in the west and north of the country were slightly more likely to ever used marijuana than those is the center and southeast.
+
+```{r}
+
+tbl_svysummary(
+  by = region,
+  include = c(ever),
+  label = list(ever ~ "Ever tried"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+) %>% 
+  add_p()
+```
+
+### How many times in your life have you used marijuana?
+
+This question was included only in Encodat. Results show that approximately 44% of individuals who reported having used marijuana indicated that they did so only once, while 19% said they did it twice, 13% did it three times, 9% did it four times and 15% did it five or more.
+
+```{r}
+
+tbl_svysummary(
+  include = c(times),
+  label = list(times ~ "# times"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+```
+
+Men tend to have used more times. Half of women used just once, versus 42% of men. On the contrary, 16% of men have used at least five time versus 9% of women. The following table shows more details.
+
+```{r}
+
+tbl_svysummary(
+  by = gender,
+  include = c(times),
+  label = list(times ~ "# times"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+) %>% 
+  add_p()
+```
+
+Youth indicated using more times than elder people. In fact, 1 of every 2 individuals aged 32 or more have only used one time.
+
+```{r}
+
+tbl_svysummary(
+  by = age2,
+  include = c(times),
+  label = list(times ~ "# times"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+) %>% 
+  add_p()
+```
+
+Differences by region show that in all regions, between 4 and 5 from each 10 people have used just once. However, the group that has used marijuana more than 5 times is twice as large in the north that in the center.
+
+```{r}
+
+tbl_svysummary(
+  by = region,
+  include = c(times),
+  label = list(times ~ "# times"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+) %>% 
+  add_p()
+```
+
+### Did you start using marijuana in the last 12 months?
+
+As the previous question, these results are only from Encodat. Out of those who have used marijuana, 14% started in the previous year of answering the survey.
+
+```{r}
+
+tbl_svysummary(
+  include = c(started_py),
+  label = list(started_py ~ "Started in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)
+```
+
+Women are more likely to have started using in the previous year of answering the survey.
+
+```{r}
+
+tbl_svysummary(
+  by = gender,
+  include = c(started_py),
+  label = list(started_py ~ "started_py"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)%>% 
+  add_p()
+```
+
+And those in the 12-21 group are almost three and six times more likely to have started using in the previous year of answering the survey those in their 20s, and in their 30s. Those less likely to have started using in previous year were the 43 to 65 year old group.
+
+```{r}
+
+tbl_svysummary(
+  by = age2,
+  include = c(started_py),
+  label = list(started_py ~ "started_py"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)%>% 
+  add_p()
+```
+
+There are no significant differences by region between those who started using in the year before answering the survey.
+
+```{r}
+
+tbl_svysummary(
+  by = region,
+  include = c(started_py),
+  label = list(started_py ~ "started_py"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w########
+)%>% 
+  add_p()
+```
+
+### Have you used marijuana in the last 12 months?
+
+We can compare the past year users in both surveys. Out of those who have used marijuana according to Encodat, around 13% used in the previous year of answering the survey. In other words, about 975,600 Mexicans indicated having used marijuana during 2015.
+
+In the case of the PPD survey, about 73% indicated having used in the past 12 months. In fact, 55% used in the last 30 days, \~7% used between 1 and 3 months ago, 9% between 3 and 12 months ago, \~7% between 1 and 3 years ago, and 20% more than 3 yrs ago.
+
+```{r}
+
+py_encodat <- tbl_svysummary(
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)
+
+py_ppd <- tbl_svysummary(
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)
+
+combined_py <- tbl_merge( tbls=list(py_encodat,py_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+
+combined_py
+
+last_time_ppd <- tbl_svysummary(
+  include = c(last_time),
+  label = list(last_time ~ "Last time used"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  sort = all_categorical() ~ "frequency", 
+  data=ppd_w########
+)
+
+last_time_ppd
+```
+
+Males are twice as likely to have started using in the previous year of answering the survey according to the Encodat. PPD respondents have less differences by gender.
+
+```{r}
+py_gender_encodat <- tbl_svysummary(
+  by = gender,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+py_gender_ppd <-tbl_svysummary(
+  by = gender,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)%>% 
+  add_p()
+
+combined_py_gender <- tbl_merge( tbls=list(py_gender_encodat,py_gender_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_py_gender
+
+```
+
+From the Encodat survey, we can gather that the youngest group is the one with the higher likelihood of having used in the previous year of the survey, up to five times more likely than the oldest group (54-65 yrs). PPD young respondents have also a higher tendency to have used in the past year, more than their peers in older groups.
+
+```{r}
+py_age_encodat <- tbl_svysummary(
+  by = age2,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+py_age_ppd <- tbl_svysummary(
+  by = age2,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)%>% 
+  add_p()
+
+combined_py_age <- tbl_merge( tbls=list(py_age_encodat,py_age_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_py_age
+
+```
+
+From the regional analysis, we can gather that people in the central and northern cities are more likely to have used in the previous year to the Encodat survey, than those in the west and the southeast. This is not the same with PPD sample, where people in central cities are the less likely to have used in the past year, while the highest are the ones in the north.
+
+```{r}
+py_regions_encodat <- tbl_svysummary(
+  by = region,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+
+py_regions_ppd <- tbl_svysummary(
+  by = region,
+  include = c(py),
+  label = list(py ~ "Used in the past year"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)%>% 
+  add_p()
+
+combined_py_regions <- tbl_merge( tbls=list(py_regions_encodat,py_regions_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_py_regions
+
+
+```
+
+### In the last 30 days, how many days have you used marijuana?
+
+Lastly, we concentrate on the number of days used in the past month and observe important differences between surveys. We can notice that less frequent users are more common than heavy users in the Encodat sample. Out of those who answered this question, about 30% indicated having used between one to five days during the month before answering the survey. Heavy users (more than 20 days) represent about half of those low frequent users. The PPD survey shows the inverse trend reflecting perhaps a self-selection bias of heavy users, as about 28% of respondents used more than 20 days, almost half than the low frequent users.
+
+```{r}
+pm_encodat <- tbl_svysummary(
+  include = c(pm),
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)
+
+pm_ppd <- tbl_svysummary(
+  include = c(pm),
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w ########
+)
+
+combined_pm <- tbl_merge( tbls=list(pm_encodat,pm_ppd), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_pm
+
+```
+
+Men are about three and two times more likely to be heavy users than women based on the Encodat and PPD survey, respectively.
+
+```{r}
+pm_encodat_gender <- tbl_svysummary(
+  include = c(pm),
+  by = gender,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+pm_ppd_gender <- tbl_svysummary(
+  include = c(pm),
+  by = gender,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w ########
+)%>% 
+  add_p()
+
+combined_pm_gender <- tbl_merge( tbls=list(pm_encodat_gender,pm_ppd_gender), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_pm_gender
+
+```
+
+Differences by age groups are not statistically significant. However, statistics show that those between 33 to 43 years, and those between 55 and 65 years have the higher distribution of heavy users.In the case of the PPD sample, heavy users mostly concentrate on ages between 33-43, and 22-32.
+
+```{r}
+pm_encodat_age <- tbl_svysummary(
+  include = c(pm),
+  by = age2,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+pm_ppd_age <- tbl_svysummary(
+  include = c(pm),
+  by = age2,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w ########
+)%>% 
+  add_p()
+
+combined_pm_age <- tbl_merge( tbls=list(pm_encodat_age,pm_ppd_age), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_pm_age
+
+
+```
+
+Regional differences in Encodat are not significant. However, the distribution shows that the center has the highest difference between less and more frequent users (30% vs 11%), than the north. In the PPD sample, the highest difference between low and high frequent users is in the west, followed by the nort, where the highest rate of heavy users are concentrated.
+
+```{r}
+pm_encodat_region <- tbl_svysummary(
+  include = c(pm),
+  by = region,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=encodat_w %>% subset(ever=="Yes")########
+)%>% 
+  add_p()
+
+pm_ppd_region <- tbl_svysummary(
+  include = c(pm),
+  by = region,
+  label = list(pm ~ "Used in the past month"),
+  statistic=list(all_categorical()~"{p}%" ), 
+  data=ppd_w########
+)%>% 
+  add_p()
+
+combined_pm_region <- tbl_merge( tbls=list(pm_encodat_region,pm_ppd_region), tab_spanner = c("**Encodat**", "**PPD**"))
+
+combined_pm_region
+```
+
+#Additional information from PPD survey PPD survey included other questions that are quite relevant to understand users´behavior and preferences, as well as market characteristics.
+
+First, we analyze the question "How do you usually use marijuana" Answers show that respondents mostly use it in cigars (66%), pipe (48%), edibles (43%), vape (30%), ointments (23%), and oils (14%).
+
+```{r}
+use_types <- subset(ppd, select=c(p10a_cigarro, p10b_pipa, p10c_vaporizador, p10d_aceite, p10e_frotada, p10f_comestibles, p10g_otra)) %>%
+  mutate_all(na_if,"-1")  %>%
+  mutate_all(~recode(.x,
+                     "Sí"= 1,
+                    "No" = 0))
+
+use_types  %>%
+  tbl_summary(label=list(p10a_cigarro ~"cigar",
+                         p10b_pipa ~ "pipe", 
+                         p10c_vaporizador ~ "vape",
+                         p10d_aceite~ "oil",
+                         p10e_frotada~ "ointed", 
+                         p10f_comestibles~ "edible",
+                         p10g_otra ~ "other"),
+              missing_text="Missing") %>% 
+  add_ci()
+
+
+
+ use_types %>%
+  summarise_all(~ mean(. == 1, na.rm=TRUE) * 100) %>%
+  setnames(.,c("cigar", "pipe","vape","oil","ointed","edible", "other")) %>% 
+  pivot_longer(everything(), names_to = "use_type", values_to = "percentage")  %>%
+  arrange(desc(percentage)) %>% 
+  ggplot(aes(x =  reorder(use_type, -desc(percentage)), y = percentage)) +
+  geom_bar(stat = "identity") +
+  labs(x = "Use Type", y = "Percentage (%)") +
+  ggtitle("Percentage of Each Use Type") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+
+  
+
+
+```
+
+We then analyze the questions regarding the average quantity consumed on a typical day. Respondents answered this question in three different ways. They could answer in number of ounces, grams, or number of cigarettes. For presenting an estimate on gram, we converted the ounces to grams (1 oz= 28.35 g) and the joints as well (1 joint= 0.32g according to Ridgewey and Kilmer, 2016). 
+
+On average, PPD respondents used 2.44 grams of marijuana (S.D= 5.9) on a typical day of use. We can analyze the quantities depending on the frequency of use. Non-frequent users consume 1.01 grams, regular users consum 2.14 grams, and heavy users consume 3.03 grams. 
+
+
+
+```{r}
+quantity <- subset(ppd, select=c(p11gramos_cant, p11onzas_cant, p11_cigarros_cant, p8)) %>%
+  mutate_all(na_if,-1)  %>%
+  mutate_all(na_if,-2)  %>%
+  mutate_all(na_if,-3)  %>%
+  mutate_all(na_if,-4)
+
+quantity$pm <- quantity$p8
+quantity$pm <- ifelse(quantity$p8 >= 1 & quantity$p8 <= 5, 1, quantity$pm)
+quantity$pm <- ifelse(quantity$p8 >= 6 & quantity$p8 <= 19, 2, quantity$pm)
+quantity$pm <- ifelse(quantity$p8 >= 20, 3, quantity$pm)
+
+
+quantity$p11_onzas_gramos  <- quantity$p11onzas_cant*28.35
+  
+quantity$p11_cigarros_gramos  <- quantity$p11_cigarros_cant*0.32
+
+quantity <- quantity %>%
+  mutate(total = pmin(p11gramos_cant, p11_onzas_gramos, p11_cigarros_gramos, na.rm = TRUE))
+
+quantity_summary <- quantity %>%  
+  tbl_summary(include = c(total),
+              label = list(total = "Total"),
+              missing_text = "Missing",
+              statistic = all_continuous() ~ "{mean} ({sd})") 
+
+quantity$pm <- as.character(quantity$pm)
+quantity$pm <- fct_na_value_to_level(quantity$pm, "Missing")
+quantity$pm <- factor(quantity$pm, levels = c(1, 2, 3), labels = c("Low", "Medium", "DND"), exclude = NULL)
+
+
+quantity %>%  tbl_summary(include=c(total),
+                          label=list(total ~"total"),
+                          missing_text="Missing",
+                          statistic = list(all_continuous() ~ "{mean} ({sd})")) %>% 
+  add_ci()
+
+
+quantity_summary2 <- quantity %>%  
+  tbl_summary(include = c(total),
+              label = list(total = "Total"),
+              by = pm,
+              missing_text = "Missing",
+              statistic = all_continuous() ~ "{mean} ({sd})") 
+
+quantity_summary
+
+```
+
+#Conclusion
+In conclusion, both Encodat and PPD surveys are quite relevant for understanding better the cannabis use in Mexico. While the PPD survey offers more information about the behavior of users, Encodat´s methodology has a strong external validity due to its probabilistic samplling. Future steps for this research include creating population weights base on Encodat so interpretation of PPD results can be more useful. 
