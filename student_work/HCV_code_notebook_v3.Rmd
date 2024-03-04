@@ -1,0 +1,688 @@
+---
+title: "Analysis of Housing Choice Voucher Use in LA"
+output: html_notebook
+---
+Document Description:
+
+This document includes as analysis of HCV data from 2017 through 2022. Data is publicly available from the HUD Assisted Housing: National and Local data set (https://www.huduser.gov/portal/datasets/assthsg.html). This analysis of HCV use in LA will inform further quantitative and qualitative data analysis
+
+
+Research Questions:
+
+This analysis will help answer the following research questions:
+
+RQ1: Who uses HCVs in LA and where are they used?
+
+RQ2: Has voucher use changed in LA since the 2019 source of income discrimination ban?
+
+
+Research Question #1:
+
+To answer RQ1, we will: 
+
+(1.1) Look at the overall usability of vouchers, or the number of vouchers available versus vouchers used annually between 2017 and 2022.
+
+(1.2) Consider geographic difference in voucher use, and how those differences shape the quality of life and access to opportunities for voucher households. To examine geographic differences in voucher use we will:
+  (1.2.1) Look at changes in voucher use over time by zip codes with Small Area Fair Market Rates (SAFMRs) at different levels relative to the annual Fair Market Rate (FMR)
+  (1.2.2) Look at annual changes in voucher use by Service Planning Area (SPA)
+  (1.2.3) Percent of voucher households in and/or next to low poverty zip codes
+
+(1.3) Consider demographic differences within HCV households and between HCV households and the general population by:
+  (1.3.1) Comparing HCV demographics to the demographics of LA overall.
+  (1.3.2) Compare the demographics of HCV households in LA to the demographics of HCV 
+  households state and nationwide.
+  (1.3.3) Identify whether HCV households of color is correlated with access to reduced access to low-poverty neighborhoods.
+
+Set-Up:
+
+To analyze any of the HCV data, we must first load and format the data.
+
+Load HCV data by year and SAFMR data
+```{r}
+Yr2021 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2021.csv", header=TRUE)
+Yr2022 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2022.csv", header=TRUE)
+Yr2020 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2020.csv", header=TRUE)
+Yr2019 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2019.csv", header=TRUE)
+Yr2018 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2018.csv", header=TRUE)
+Yr2017 <- read.csv("C:/Users/asizemor/Desktop/DisData/Yr2017.csv", header=TRUE)
+LAZips <- read.csv("C:/Users/asizemor/Desktop/DisData/LAZips.csv", header=TRUE)
+SAFMR <- read.csv("C:/Users/asizemor/Desktop/DisData/SAFMR.csv", header=TRUE)
+```
+
+Add year to each HCV annual data set so they can be merged
+```{r}
+## add year value to all annual data so they can be merged)
+Yr2017$year = 2017
+Yr2018$year = 2018
+Yr2019$year = 2019
+Yr2020$year = 2020
+Yr2021$year = 2021
+Yr2022$year = 2022
+```
+
+Remove old df in the environment. Done once then commented out, does not need to repeat.
+```{r}
+#rm(LAyrs)
+#rm(df)
+```
+
+
+Merge HCV annual data into one aggregate df
+```{r}
+Allyrs <- rbind(Yr2017, Yr2018, Yr2019, Yr2020, Yr2021, Yr2022)
+```
+
+Clean-up Allyrs df by removing columns without values
+```{r}
+Allyrs$gsl <- NULL
+Allyrs$longitude <- NULL
+Allyrs$latitude <- NULL
+Allyrs$state <- NULL
+Allyrs$ha_size <- NULL
+Allyrs$pha_total_units <- NULL
+Allyrs$place <- NULL
+Allyrs$fedhse <- NULL
+```
+
+Remove rows with summary data for all LA HUD programs by zip. Rename new df Allyrs_nosumm
+```{r}
+Allyrs_nosumm<-subset(Allyrs, program!=1)
+print(Allyrs_nosumm)
+```
+Check to make sure only HCV rows included, then delete column program which reflects the type of program. Also delete column sumlevel which reflects that the data exported is zipcode level
+```{r}
+any_other_than_3 <- any(Allyrs_nosumm$program != 3)
+print(any_other_than_3)
+Allyrs_nosumm$program <- NULL
+Allyrs_nosumm$sumlevel <- NULL
+```
+Rename 'entities' column to 'zip' in Allyrs_nosumm, then merge LA Allyrs_nosumm with LAzip so new df only has LA county data
+```{r}
+names(Allyrs_nosumm)[names(Allyrs_nosumm) == "entities"] <- "zip"
+names(LAZips)[names(LAZips) == "ZIP"] <- "zip"
+LAyears <- merge(Allyrs_nosumm,LAZips['zip'])
+LAyears$cbsa <- NULL
+LAyears$name <- NULL
+LAyears$code <-NULL
+print(LAyears)
+```
+
+Load packages needed for analysis
+```{r}
+library(ggplot2)
+library(dplyr)
+library(crayon)
+```
+
+Move years to be first column in LAyears. This section is commented out so this portion of the code doesn't re-run, which will continue to reorder the columns.
+
+```{r}
+## Reorder columns to move the last column to the first position
+LAyears <- LAyears[, c(ncol(LAyears), 1:(ncol(LAyears)-1))]
+#
+## Reorder columns to move the last column to the first position
+#LAyears <- LAyears[, c(ncol(LAyears), 1:(ncol(LAyears)-1))]
+#
+# Print updated LAyears data frame
+print(LAyears)
+```
+
+
+
+RQ 1.1 requires further data collection on the number of HCVs allocated in LA from 2017 through 2022. The current data set only includes the number of HCVs used.
+
+** NOTE: Revisit after collecting voucher allocation data. Some of this is publicly avail in press releases etc., but some may need to be requested from HUD. Check Phil & Jason's dataset **
+
+RQ 1.2 involves examining HCV use by geographic region. To do this we will develop fields to help conduct an analysis of zip codes where HCVs are used based on Service Planning Area (SPA), poverty level, and SAFMR.
+
+Change SAFMR rates in SAFMR df to numberic:
+```{r}
+#Change SAFMR bedroom rates in SAFMR df to numeric values
+SAFMR$X1bd <- as.numeric(gsub("[^0-9.]", "", SAFMR$X1bd))
+SAFMR$sro <- as.numeric(gsub("[^0-9.]", "", SAFMR$sro))
+SAFMR$X2bd <- as.numeric(gsub("[^0-9.]", "", SAFMR$X2bd))
+SAFMR$X3bd <- as.numeric(gsub("[^0-9.]", "", SAFMR$X3bd))
+SAFMR$X4bd <- as.numeric(gsub("[^0-9.]", "", SAFMR$X4bd))
+
+print(SAFMR)
+```
+
+
+
+Merge SAFMR with LAyears using 2bedroom SAFMR rates:
+```{r}
+#Merge SAFMRs by year into LAyears
+LAyears <- merge(LAyears, SAFMR[, c("zip", "year", "X2bd")], by = c("zip", "year"), all.x = TRUE)
+
+# Rename the X2bed column to SAFMR_2bd
+names(LAyears)[names(LAyears) == "X2bd"] <- "SAFMR_2bd"
+
+# Move SAFMR_2bd column to be the third column
+LAyears <- LAyears %>%
+  select(1:2, SAFMR_2bd, everything())
+
+# Print the updated LAyears data frame
+print(LAyears)
+```
+
+Load and merge FMR data:
+
+```{r}
+#Load new df with FMR for years 2017 through 2022
+LAFMRS <- read.csv("C:/Users/asizemor/Desktop/DisData/LAFMRS.csv", header=TRUE)
+
+#Convert FMR rates to numeric values
+LAFMRS$FMR_2bd <- as.numeric(gsub("[^0-9.]", "", LAFMRS$FMR_2bd))
+
+# Merge LAyears and LAFMRS
+LAyears <- merge(LAyears, LAFMRS[, c("year", "FMR_2bd")], by = "year", all.x = TRUE)
+
+# Print the updated LAyears data frame
+print(LAyears)
+
+```
+
+calculate zip code percent of FMR:
+```{r}
+
+# Calculate percentage of FMR_2bd relative to SAFMR_2bd
+LAyears$prc_fmr <- LAyears$FMR_2bd / LAyears$SAFMR_2bd
+
+# Move prc_fmr column to be the fourth column
+LAyears <- LAyears %>%
+  select(1:3, prc_fmr, everything())
+
+# Print the updated LAyears data frame
+print(LAyears)
+```
+
+Regress total units on percent FMR to see if there is a relationship, across all years, between a zip codes SAFMR and the number of vouchers used in that neighborhood:
+
+
+```{r}
+# Create scatter plot
+ggplot(LAyears, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Scatter Plot of Total Units vs. Percent FMR")
+```
+
+Scatter plot with regression line for all values:
+```{r}
+ggplot(LAyears, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR")
+```
+
+
+
+Scatter plots for 2017 only:
+
+```{r}
+LAyears_2017 <- subset(LAyears, year == 2017)
+
+# Create scatter plot
+ggplot(LAyears_2017, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2017)")
+```
+
+Scatter plots for 2018 only:
+
+```{r}
+LAyears_2018 <- subset(LAyears, year == 2018)
+
+# Create scatter plot
+ggplot(LAyears_2018, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2018)")
+```
+Scatter plot and regression for 2019:
+
+```{r}
+LAyears_2019 <- subset(LAyears, year == 2019)
+
+# Create scatter plot
+ggplot(LAyears_2019, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2019)")
+```
+Scatterplot and regression for 2020:
+```{r}
+LAyears_2020 <- subset(LAyears, year == 2020)
+
+# Create scatter plot
+ggplot(LAyears_2020, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2020)")
+```
+Scatterplot and regression for 2021:
+```{r}
+LAyears_2021 <- subset(LAyears, year == 2021)
+
+# Create scatter plot
+ggplot(LAyears_2021, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2021)")
+```
+Scatterplot and regression for 2022:
+```{r}
+LAyears_2022 <- subset(LAyears, year == 2022)
+
+# Create scatter plot
+ggplot(LAyears_2022, aes(x = prc_fmr, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent FMR", y = "Total Units") +
+  ggtitle("Regression of Total Units on Percent FMR (Year 2022)")
+```
+
+Summary statistics for regression of total_units on prc_fmr:
+```{r}
+# Fit a linear regression model
+model <- lm(total_units ~ prc_fmr, data = LAyears)
+
+# Summary of the regression model
+summary(model)
+```
+Area chart of units by prc_fmr for 2017:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2017 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2017")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2017 with Smoothed Line")
+```
+Area chart of units by prc_fmr for 2018:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2018 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2018")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2018 with Smoothed Line")
+```
+Area chart of units by prc_fmr for 2019:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2019 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2019")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2019 with Smoothed Line")
+```
+Area chart of units by prc_fmr for 2020:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2020 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2020")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2020 with Smoothed Line")
+```
+Area chart of units by prc_fmr for 2021:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2021 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2021")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2021 with Smoothed Line")
+```
+Area chart of units by prc_fmr for 2022:
+```{r}
+# Aggregate total_units by prc_fmr
+LAyears_agg <- LAyears_2022 %>%
+  group_by(prc_fmr) %>%
+  summarize(total_units = sum(total_units))
+
+# Create an area chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2022")
+
+# Create an area chart with smoothed line
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units)) +
+  geom_area() +
+  geom_smooth(method = "loess", se = FALSE, color = "red") +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR in 2022 with Smoothed Line")
+```
+Combined smoothed line chart for years 2017 - 2022:
+```{r}
+# Aggregate data by year
+LAyears_agg <- LAyears %>%
+  group_by(year, prc_fmr) %>%
+  summarise(total_units = sum(total_units))
+
+# Plot smoothed line chart for multiple years
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units, color = as.factor(year))) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR (2017-2022)") +
+  scale_color_manual(values = c("blue", "red", "green", "orange", "purple", "brown")) +
+  facet_wrap(~year, scales = "free")  # Separate plots for each year
+
+
+# Create a combined smoothed line chart
+ggplot(data = LAyears_agg, aes(x = prc_fmr, y = total_units, color = as.factor(year))) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(x = "Percent of FMR", y = "Total Units", title = "Total Units by Percent of FMR (2017-2022)") +
+  scale_color_manual(values = c("blue", "red", "green", "orange", "purple", "brown"))
+
+```
+
+The above analyses reflect how many HCV vouchers are used in areas with SAFMRs at varying percentage of the LA County FMR between 2017 and 2022. These data reflect that the bulk of HCVs are used for units at or above FMR. 
+
+This analysis is based on the SAFMR and FMR rates for 2-bedroom units. We use the 2-bedroom rate because FMR and SAFMR are calculated at the 2-bedroom rate, and then scaled up or down for smaller and larger units as a percentage of the 2-bedroom rate. For example, across any given zip code the 1-bedroom SAFMR will be the same percentage of the 2-bedroom SAFMR for that zip code (Source: https://www.huduser.gov/periodicals/ushmc/winter98/summary-2.html#:~:text=For%20example%2C%20based%20on%20local,for%20units%20of%20other%20sizes.)
+
+
+Now lets look at access to low poverty neighborhoods. First, we need to zip codes where the poverty level is not available because it is annonomized, missing or not reported. Any zip code with under 11 vouchers in it has annonymized values for most variables in the LAyears data set. Annonymized, missing and unreported values have negative number in the column. Lets create a variable that excludes rows with negative values:
+```{r}
+# Filter out rows with positive values
+LAyears_positive <- LAyears %>%
+  filter(total_units > 11, tpoverty > 0, pct_occupied > 0)
+```
+
+
+
+Lets regress total units on tpoverty, or the percent of the population in poverty in the zip where vouchers are used:
+
+```{r}
+# Run linear regression
+model <- lm(total_units ~ tpoverty, data = LAyears_positive)
+
+# Summary of the regression model
+summary(model)
+
+ggplot(LAyears, aes(x = tpoverty, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(x = "Poverty Rate", y = "Total Units", title = "Linear Regression: Total Units vs Poverty Rate")
+```
+
+Regress tot units on percent poverty in zip (zips with missing data excluded):
+```{r}
+library(ggplot2)
+
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = tpoverty, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  facet_wrap(~ year, ncol = 3) +
+  labs(x = "Poverty Rate", y = "Total Units", title = "Linear Regression: Total Units vs Poverty Rate by Year")
+
+```
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = tpoverty, y = total_units, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Poverty Rate", y = "Total Units", title = "Linear Regression: Total Units vs Poverty Rate (All Years)") +
+  scale_color_discrete(name = "Year")
+
+```
+Regress tot units on percent minority in zip (zips with missing data excluded):
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = tminority, y = total_units)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  facet_wrap(~ year, ncol = 3) +
+  labs(x = "Percent Population in Zip that Identifies as a Minority", y = "Total Units", title = "Linear Regression: Total Units vs Poverty Rate by Year")
+```
+Same analysis overlapped:
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = tminority, y = total_units, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent of Zip Code that Identifies as a Minority", y = "Total Units", title = "Linear Regression: Total Units vs Percent Minority in Zip (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+Lets look regress the percentage of voucher holders in a zip who are minorities on the percentage of people in thier zip code who are minorities:
+
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = tpoverty, y = pct_minority, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "% Minority in Zip", y = "% of HCV Minority Households", title = "Linear Regression: % of HCV Households of Color vs % of Zip Code Pop that are Households of Color (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+Measure statistical significance of pct_minority on tminority:
+```{r}
+# Fit a linear regression model using data from LAyears_positive
+model <- lm(pct_minority ~ tminority, data = LAyears_positive)
+
+# Extract p-value
+p_value <- summary(model)$coefficients["tminority", "Pr(>|t|)"]
+
+# Print p-value
+print(p_value)
+```
+Analysis 1.3.3:
+
+Regress pct_minority on tpoverty to see if a households identity as a minority has a significant relationship to thier access to low-poverty neighborhoods:
+
+```{r}
+# Fit a linear regression model using data from LAyears_positive
+model <- lm(pct_minority ~ tpoverty, data = LAyears_positive)
+
+# Extract p-value
+p_value <- summary(model)$coefficients["tpoverty", "Pr(>|t|)"]
+
+# Print p-value
+print(p_value)
+```
+Let's graph the regression of pct_minority on tpoverty:
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = pct_minority, y = tpoverty)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  facet_wrap(~ year, ncol = 3) +
+  labs(x = "Percent of Minority HCV Holders in Zip Code", y = "Percent of Poverty in Zip Code", title = "Linear Regression: Poverty Level vs Percent Minority HCV Households by Year")
+```
+Same analysis overlapped:
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_positive, aes(x = pct_minority, y = tpoverty, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent of Zip Code that Identifies as a Minority", y = "Poverty Rate in Zip", title = "Linear Regression: Poverty in Zip vs Percent HCV Minority Households in Zip (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+
+Now, lets look at access to low-poverty neighborhoods across different racial demographics. To do this we need to make a new df for each racial/ethnic demographic category to ensure we are not including rows with negative values. It will also be helpful to see what percent of rows are omitted for each group:
+
+```{r}
+# Filter out rows with positive values
+LAyears_blck <- LAyears %>%
+  filter(pct_black_nonhsp > 0)
+
+LAyears_hsp <- LAyears %>%
+  filter(pct_hispanic > 0)
+
+LAyears_white <- LAyears %>%
+  filter(pct_white_nothsp > 0)
+
+LAyear_asian <- LAyears %>%
+  filter(pct_asian_pacific_nonhsp > 0)
+```
+
+```{r}
+# Total rows in LAyears
+total_rows <- nrow(LAyears)
+print(total_rows)
+```
+```{r}
+# Total rows in LAyear_asian
+total_rows <- nrow(LAyear_asian)
+print(total_rows)
+```
+```{r}
+result <- 1145/1651
+print(result)
+```
+For LAyear_asian, over 30% of dataset is missing.
+
+```{r}
+# Total rows in LAyears_blck
+total_rows <- nrow(LAyears_blck)
+print(total_rows)
+```
+```{r}
+result <- 1421/1651
+print(result)
+```
+For LAyears_blck, 14% of data are missing.
+
+```{r}
+# Total rows in LAyears_white
+total_rows <- nrow(LAyears_white)
+print(total_rows)
+```
+```{r}
+result <- 1446/1651
+print(result)
+```
+For LAyears_white, 12.4% of data are missing
+
+```{r}
+# Total rows in LAyears_hsp
+total_rows <- nrow(LAyears_hsp)
+print(total_rows)
+```
+```{r}
+result <- 1444/1651
+print(result)
+```
+For LAyears_hsp, 12.6% of data are missing.
+
+Based on data availability, it may be challenging to analyse LAyear_asian but the other df can be more reliably analyszed.
+
+Regress pct_white on tpoverty:
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_white, aes(x = pct_white_nothsp, y = tpoverty, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent White HCV Households", y = "Percent Zip in Poverty", title = "Linear Regression: Percent White HCV Hoseholds vs Poverty Rate (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+Find the p-score:
+```{r}
+# Fit a linear regression model using data from LAyears_white
+model <- lm(pct_white_nothsp ~ tpoverty, data = LAyears_white)
+
+# Extract p-value
+p_value <- summary(model)$coefficients["tpoverty", "Pr(>|t|)"]
+
+# Print p-value
+print(p_value)
+```
+Regress pct_blck on tpoverty:
+
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_blck, aes(x = pct_black_nonhsp, y = tpoverty, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent Black HCV Households", y = "Percent Zip in Poverty", title = "Linear Regression: Percent Black HCV Hoseholds vs Poverty Rate (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+Find p-value:
+```{r}
+# Fit a linear regression model using data from LAyears_blck
+model <- lm(pct_black_nonhsp ~ tpoverty, data = LAyears_blck)
+
+# Extract p-value
+p_value <- summary(model)$coefficients["tpoverty", "Pr(>|t|)"]
+
+# Print p-value
+print(p_value)
+```
+Regress pct_hsp on tpoverty:
+
+```{r}
+# Scatter plot with regression lines for each year
+ggplot(LAyears_hsp, aes(x = pct_hispanic, y = tpoverty, color = as.factor(year))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Percent Hispanic HCV Households", y = "Percent Zip in Poverty", title = "Linear Regression: Percent Hispanic HCV Hoseholds vs Poverty Rate (All Years)") +
+  scale_color_discrete(name = "Year")
+```
+Find p-value:
+```{r}
+# Fit a linear regression model using data from LAyears_blck
+model <- lm(pct_hispanic ~ tpoverty, data = LAyears_hsp)
+
+# Extract p-value
+p_value <- summary(model)$coefficients["tpoverty", "Pr(>|t|)"]
+
+# Print p-value
+print(p_value)
+```
+Not statistically significant.
+
+Limitations:
+
+Understanding the limitations of this data set can help inform how this analysis is interpreted, as well as future data collection and research needs. Limitations include:
+- Missing variables which are annonomyzed 
