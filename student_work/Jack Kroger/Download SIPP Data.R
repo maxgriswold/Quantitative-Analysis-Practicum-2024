@@ -40,10 +40,11 @@ names(sipp_rw_df) = tolower(names(sipp_rw_df))
 
 
 # Limit to December records for just point-in-time estimates and then merge
-sipp_df = merge(sipp_main_df[sipp_main_df[,'monthcode'] %in% 12,],
-                sipp_rw_df[sipp_rw_df[, 'monthcode'] %in% 12,],
-                by = c('ssuid', 'pnum', 'monthcode', 'spanel', 'swave'))
+#sipp_df = merge(sipp_main_df[sipp_main_df[,'monthcode'] %in% 12,],
+#                sipp_rw_df[sipp_rw_df[, 'monthcode'] %in% 12,],
+#               by = c('ssuid', 'pnum', 'monthcode', 'spanel', 'swave'))
 
+sipp_df = merge(sipp_main_df, sipp_rw_df, by = c('ssuid', 'pnum', 'monthcode', 'spanel', 'swave'))
 
 # Save files locally
 saveRDS(sipp_df, file = "Data/sipp202212.rds", compress=F)
