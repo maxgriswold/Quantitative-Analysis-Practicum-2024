@@ -4,34 +4,17 @@ output: html_notebook
 ---
 What does this look like on a map?
 ```{r mapping projects}
+
 library(leaflet)
-
-#Generate separate variables for lat and long for the mining dataset (current format is (lat, long))
-library(tidyr)
-mining <- separate(mining, col = Mine.Location, into = c("Latitude", "Longitude"), sep = ", ", remove = FALSE)
-
-# Remove parentheses from latitude and longitude columns
-mining$Latitude <- gsub("\\(", "", mining$Latitude)
-mining$Longitude <- gsub("\\)", "", mining$Longitude)
-
-# Convert latitude and longitude columns to numeric
-mining$Latitude <- as.numeric(mining$Latitude)
-mining$Longitude <- as.numeric(mining$Longitude)
-
-#change lat and long to lower case
-names(mining)[which(names(mining) == "Latitude")] <- "latitude"
-names(mining)[which(names(mining) == "Longitude")] <- "longitude"
-
-# Filter mining_data to include only rows with complete latitude and longitude information
-mining_complete <- mining[complete.cases(mining$latitude, mining$longitude), ]
-
-
-# Define color palette for commodity types
-color_palette <- colorFactor(palette = c("blue", "green", "red", "orange", "purple", "yellow"),
-                              domain = mining_complete$Commodity)
+# Generate a list of 21 colors
+colors <- c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", 
+            "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+            "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
+            "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5",
+            "#393b79")
 
 # Create a leaflet map
-map <- leaflet(data = mining_complete) %>%
+map <- leaflet(data = subset_mining_active) %>%
   
   # Add tiles for the base map
   addTiles() %>%
@@ -40,13 +23,70 @@ map <- leaflet(data = mining_complete) %>%
   addCircleMarkers(
     lng = ~longitude,  # Specify longitude column
     lat = ~latitude,   # Specify latitude column
-    radius = 5,        # Set the radius of the circles
+    radius = 10,        # Set the radius of the circles
     color = ~color_palette(Commodity),  # Set the color based on commodity type
     fillOpacity = 0.05,  # Set the opacity of the circles
-    popup = ~Commodity  # Add a popup with commodity type
-  )
-
+  ) %>%
+  
+  # Add legend
+  addLegend(position = "bottomright",  # Set the position of the legend
+            colors = colors,  # Use the predefined list of colors
+            labels = unique(subset_mining_active$Commodity),  # Define labels
+            title = "Mineral Commodity")  # Set the title of the legend
 
 # Print the map
 map
+
+mapshot(map, file = "map.png")
+
 ```
+lets make another map, this time showing treated and untreated mines and conflict event around those sites
+```{r mapping conflict}
+
+#add treatment status to the joined_data df
+
+subset_mining_active_map <- data.frame(subset_mining_active)
+subset_mining_active_map$treatment <- ifelse(subset_mining_active_map$Extent.of.Processing == "refined" |
+                                  subset_mining_active_map$Extent.of.Processing=="processed"|
+                                  subset_mining_active_map$Extent.of.Processing=="smelted", 1, 0)
+
+
+acled_map <- joined_data[, c("event_id_cnty")]
+acled_map <- merge(acled_map, subset_ACLED, by= "event_id_cnty")
+
+# Create a leaflet map
+map2 <- leaflet(data = subset_mining_active_map) %>%
+  
+  # Add tiles for the base map
+  addTiles() %>%
+  
+  # Add polygons for mines with small equilateral triangles
+ addCircleMarkers(
+    lng = ~longitude,  # Specify longitude column
+    lat = ~latitude,   # Specify latitude column
+    radius = 5,        # Set the radius of the circles
+    color = ~ifelse(treatment == 1, "red", "green"),  # Set the color based on commodity type
+    fillOpacity = 1,  # Set the opacity of the circles
+  ) %>%
+  
+  # Add legend
+  addLegend(
+    position = "bottomright",
+    colors = c("orange", "red", "green"),
+    labels = c("Conflict Event", "Treated Mine", "Control Mine"),
+    title = "Legend"
+  )
+
+map2 <- addCircleMarkers(map2,
+                        lng = ~acled_map$longitude,
+                        lat = ~acled_map$latitude,
+                        radius = .00001,  # Adjust the radius as needed
+                        color = "orange",  # Set the color of the circles
+                        fillOpacity = 0)  # Set the opacity of the circles
+# Print the map
+map2
+
+mapshot(map2, file = "map2.png")
+
+```
+
