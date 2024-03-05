@@ -2,6 +2,10 @@
 # Last Updated 2 March 2024
 # Jack Kroger
 
+library(dplyr)
+library(tidyverse)
+library(survey)
+library(haven)
 
 #Read in Data
 sipp_df = readRDS("Data/sipp202212.rds")
@@ -127,6 +131,87 @@ for (i in 1:length(unique_respondents)) {
   #sipp_df[indices, "unsecuredebt"] = pers_unsecuredebt
 }
 
+# Combine each of these vectors and merge onto the sipp dataframe
+yearly_data = data.frame(persid = unique_respondents,
+                         unemployed = unemployed,
+                         laidoff = laidoff,
+                         ec_received = ec_received,
+                         ec_govt = ec_govt,
+                         ec_amount = ec_amount,
+                         income = income,
+                         mortgage = mortgage,
+                         utility = utility,
+                         totaldebt = totaldebt,
+                         ccdebt = ccdebt,
+                         unsecuredebt = unsecuredebt)
 
-# Finally, we look at total debt and credit card debt at the end of the year
-table(sipp_df$eucany)
+sipp_overall = left_join(sipp_df, yearly_data)
+
+# Finally, we will keep just one selection of individuals, so use just December's data and save as csv
+# Now have 17144 observations, 8982 who were unemployed at any time and 654 of whom received UC
+sipp_overall = subset(sipp_overall, monthcode==12)
+table(sipp_overall$unemployed)
+table(sipp_overall$laidoff)
+
+# Read in the Policies to Try to Make an Eligibility Criteria
+# Eligibility includes working a job in the year, unemployment duration lasting at least a month, and income threshold
+policies = read_csv("Data/State Level UI Qualifying Rules.csv")
+sipp_overall$state = tolower(sipp_overall$state_name)
+sipp_overall = left_join(sipp_overall, policies)
+
+sipp_overall$quart_income = sipp_overall$income / 4
+
+sipp_overall$unemp_dur = sipp_overall$enj_emonth - sipp_overall$enj_bmonth
+
+sipp_overall$eligible = ifelse(sipp_overall$quart_income > sipp_overall$quarterly_rate &
+                                 sipp_overall$unemp_dur>1 &
+                                 sipp_overall$ejb1_scrnr==2, 1, 0)
+
+table(sipp_overall$eligible, sipp_overall$unemployed) # Leaves us with 6819 eligible individuals
+
+# Write CSV for Later Data Work
+write_csv(sipp_overall, "Data/sipp 2022 consolidated.csv")
+
+
+
+# We can also do a bit of survey analysis here, setting up a survey frame and getting descriptive statistics
+
+sipp_design = svrepdesign(data = sipp_overall,
+                          weights = ~ wpfinwgt,
+                          repweights = "repwgt([1-9]+)",
+                          type = "Fay",
+                          rho = 0.5)
+
+svymean(~ unemployed, sipp_design, na.rm=T)
+svyby(~ unemployed, ~race, sipp_design, svymean, na.rm=T)
+weighted.mean(sipp_overall$unemployed, sipp_overall$wpfinwgt)
+sipp_overall %>% group_by(race) %>%
+  summarise(perc_unemployed = weighted.mean(unemployed, wpfinwgt))
+
+svymean(~ ec_received, sipp_design, na.rm=T)
+svyby(~ ec_received, ~race, sipp_design, svymean, na.rm=T)
+weighted.mean(sipp_overall$ec_received, sipp_overall$wpfinwgt)
+sipp_overall %>% group_by(race) %>%
+  summarise(perc_rec_benefits = weighted.mean(ec_received, wpfinwgt))
+
+sub_design = subset(sipp_design, unemployed==1 & eligible==1)
+
+ec_receipt = svyby(~ ec_received, ~race, sub_design, svymean, na.rm=T)
+ec_receipt
+
+# We can graph income and total debt and look at them based on unemployment status
+ggplot(subset(sipp_overall, income<1000000), aes(x = income, y = ccdebt, color = as.factor(unemployed))) +
+  geom_point()
+
+# Look just at those who are unemployed and eligible break out the group who receive UC benefits
+sipp_subset = subset(sipp_overall, laidoff==1)
+
+ggplot(subset(sipp_subset, income<1000000), aes(x = income, y = ccdebt, color = as.factor(ec_received))) +
+  geom_point()
+
+ggplot(subset(sipp_subset, income<250000 & ccdebt<250000), aes(x = log(income), y = log(ccdebt), color = as.factor(ec_received))) +
+  geom_point()
+
+sipp_subset %>% group_by(race) %>%
+  summarise(perc_rec_benefits = weighted.mean(ec_received, wpfinwgt),
+            amt_benefits = weighted.mean(ec_amount, wpfinwgt))
