@@ -1,4 +1,4 @@
-#set the folder with my data as the working directory
+#set the folder with mydata as the working directory
 setwd("/Users/mforbes/OneDrive - RAND Corporation/Documents/Classes/Quantitative Practicum/data/ACS data")
 
 #the data in this folder contains employment and disability data at the county
