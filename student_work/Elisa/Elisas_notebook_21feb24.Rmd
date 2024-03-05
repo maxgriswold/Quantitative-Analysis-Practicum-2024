@@ -121,7 +121,7 @@ ggplot(country_counts, aes(x = mine_id, y = reorder(Country, mine_id))) +
 library(ggplot2)
 ggplot(processing_counts, aes(x = mine_id, y = reorder(Extent.of.Processing, mine_id))) +
   geom_bar(stat = "identity", fill = "skyblue") +
-  labs(title = "Number of Projects by Level of Processing",
+  labs(
        x = "Number of Mines",
        y = "Extent of Processing") +
   theme_minimal() +
@@ -134,12 +134,15 @@ ggplot(processing_counts, aes(x = mine_id, y = reorder(Extent.of.Processing, min
 ```{r conflict by year}
 
 acled_minus_2024 <- subset(acled, year <2024)
-conflict_year <- table(acled_minus_2024$year)
+
+subset_ACLED <- acled_minus_2024[acled_minus_2024$country %in% country_list, ]
+
+conflict_year <- table(subset_ACLED$year)
 
 barplot(conflict_year, 
         main = "Number of Conflicts By Year", 
         xlab = "Conflict Event Year", 
-        ylab = "Number of Conflicts",
+        ylab = "ACLED - Number of Conflicts",
         col = "skyblue",
         border = "black")
 
@@ -249,17 +252,28 @@ names(total_mines_by_country)[which(names(total_mines_by_country) == "Country")]
 # Merge the datasets based on the country column
 merged_data <- merge(total_mines_by_country, conflicts_years_per_country, by = "country", all = TRUE)
 
-# Plot the scatterplot
+countries_to_label <- merged_data$country %in% c("Democratic Republic of Congo", "South Africa")
+subset_data_plot <- merged_data[countries_to_label, ]
+
 plot(x = merged_data$Total_Mines, 
      y = merged_data$average_conflicts,
-     main = "Total Mines vs Average Conflict by Country",
      xlab = "Total Mines",
      ylab = "Average Conflict",
      col = "blue", 
      pch = 16)  # Use filled circles as points
-# Add text labels for each point (adjust the position and offset as needed)
-text(x = merged_data$Total_Mines, y = merged_data$average_conflicts, labels = merged_data$country,
-     pos = 3, offset = 0.5, cex=.5)
+
+# Add text labels for the two specific countries
+text(x = subset_data_plot$Total_Mines, 
+     y = subset_data_plot$average_conflicts, 
+     labels = subset_data_plot$country,
+     pos = 1,  # Adjust label position (1 = below, 2 = left, 3 = above, 4 = right)
+     offset = 0.5,  # Adjust label offset
+     cex = 0.4)  # Adjust label size
+
+
+
+
+
 ```
 
 What happens to this relationship when I remove South Africa? Is this relationship different between low and high processing projects?
@@ -340,6 +354,8 @@ plot(st_geometry(mining_buffered), col = "red", add = T, pch = 3)
 #join datasets
 joined_data <- st_join(acled_sf, mining_buffered, join = st_within, left = F)
 
+joined_data_protest <-
+
 ```
 Initial d-in-d estimate 
 ```{r d in d}
@@ -351,10 +367,11 @@ library(sf)
 joined_data <- st_as_sf(joined_data)
 joined_data <- joined_data %>% arrange(mine_id, year)
 
+
 # Aggregate data to get count of conflicts for each mine area and year
 
 agg_data <- joined_data %>%
-  group_by(mine_id, year, treatment) %>%
+  group_by(mine_id, year) %>%
   summarise(num_conflicts = n_distinct(event_id_cnty))
 
 agg_data <- agg_data %>% arrange(mine_id, year)
@@ -370,8 +387,6 @@ complete_data <- agg_data_df %>%
   complete(mine_id, nesting(year)) %>%
   mutate(num_conflicts = ifelse(is.na(num_conflicts), 0, num_conflicts))
 
-complete_data <- complete_data %>% arrange(mine_id, year)
-
 #generate a dataframe with mine_id and project inception year to fill in the treatment status of "missing" years
 project_inception_processing <- subset(subset_mining, select = c("mine_id", "Project.Inception..Year.", "Extent.of.Processing"))
 
@@ -382,8 +397,7 @@ merged_panel$treatment <- ifelse(merged_panel$Extent.of.Processing == "refined" 
                                   merged_panel$Extent.of.Processing=="processed"|
                                   merged_panel$Extent.of.Processing=="smelted" & merged_panel$year >= merged_panel$Project.Inception..Year., 1, 0)
 
-merged_panel <- merged_panel %>% arrange(mine_id, year)
-
+#replacing the never treated mines with "0" for Project Inception Year (the "first treated" variable or group variable)
 merged_panel$Project.Inception..Year. <- ifelse(merged_panel$Extent.of.Processing == "refined" |
                                   merged_panel$Extent.of.Processing=="processed"|
                                   merged_panel$Extent.of.Processing=="smelted", merged_panel$Project.Inception..Year., 0)
@@ -405,7 +419,447 @@ mine_conflict_attgt <- att_gt(yname = "num_conflicts",
               
 
 # summarize the results
-summary(mine_confict_attgt)
+summary(mine_conflict_attgt)
+
+#estimate aggregated treatment effects
+mine_conflict_aggte <- aggte(mine_conflict_attgt, type = "dynamic", min_e = -10, max_e = 10)
+
+#summarize results
+summary(mine_conflict_aggte)
+
+#plot aggregated treatment effects
+ggdid(mine_conflict_aggte, title = "Event Study - High vs. Low Processing Project")
+
+
+```
+How many mines are in each post treatment group?
+```{r distribution of treatment mines}
+# Identify treatment times
+names(merged_panel)[5] <- "start"
+
+
+# Center the time variable relative to treatment start times
+merged_panel$centered_time <- ifelse(merged_panel$start==0, "na", merged_panel$year - merged_panel$start)
+
+
+#generate a table
+pre_post_bymine <- aggregate(mine_id ~ centered_time, data = merged_panel, FUN = length)
+
+pre_post_bymine$centered_time <- as.numeric(pre_post_bymine$centered_time)
+
+pre_post_bymine <- arrange(pre_post_bymine, centered_time)
+
+print(pre_post_bymine)
+
+subset_pre_post_bymine <- pre_post_bymine[pre_post_bymine$centered_time >= -10 & pre_post_bymine$centered_time <= 10, ]
+
+# lets make the table look nicer
+library(kableExtra)
+
+
+# Create a table with kableExtra and apply styling
+table <- kable(subset_pre_post_bymine, "html",
+               row.names = FALSE,  # Remove row numbers
+               col.names = c("Time from treatment", "Mine count"),  # Change column names
+               escape = FALSE)  # Prevent "na" values from showing as text
+
+# Apply additional styling to center column names
+table <- table %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  # Bootstrap styling
+                full_width = FALSE,  # Allow scrolling
+                latex_options = "hold_position",  # Hold table position in LaTeX
+                position = "center")  
+
+# Print the table
+print(table)
+
+
+
+
+```
+
+
+Should I be worried about spillovers?
+
+```{r spillovers}
+library(sf)
+joined_data_spillovers <- st_join(mining_sf, mining_buffered, join = st_within, left = F)
+
+
+mine_count_stage <- aggregate(mine_id ~ Status, data = subset_mining, FUN = length)
+
+#excludes records with the same mine id
+cleaned_spillovers <- subset(joined_data_spillovers, mine_id.x!=mine_id.y)
+
+#exclude records with the same X - Y or Y - X match
+cleaned_spillovers$combined <- with(cleaned_spillovers, ifelse(Property.Name.x < Property.Name.y, paste(Property.Name.x, Property.Name.y, sep = "_"), paste(Property.Name.y, Property.Name.x, sep = "_")))
+
+cleaned_spillovers <- cleaned_spillovers[!duplicated(cleaned_spillovers$combined), ]
+
+#Tag projects with the same owner
+cleaned_spillovers$same_owner <- ifelse(cleaned_spillovers$Company.Name.x==cleaned_spillovers$Company.Name.y, 1, 0)
+
+#remove South Africa
+#cleaned_spillovers <- cleaned_spillovers[cleaned_spillovers$Country.x != "South Africa", ]
+
+#remove exploration and feasibility projects
+cleaned_spillovers <- subset(cleaned_spillovers, Status.x %in% c("Producer"))
+
+cleaned_spillovers <- subset(cleaned_spillovers, Status.y %in% c("Producer"))
+
+
+
+#generate a list of mines with potential spillover issues
+
+near_mines_32km <- c(cleaned_spillovers$mine_id.x, cleaned_spillovers$mine_id.y)
+
+near_mines_32km <- data.frame(near_mines_32km)
+
+near_mines_32km <- unique(near_mines_32km$near_mines_32km)
+
+near_mines_32km <- data.frame(near_mines_32km)
+
+
+```
+
+Recreate DiD with recoding (restrict to productive mines, flagging spillover cases)
+```{r}
+#create a new mining project dataset excluding South Africa
+#subset_mining_noSA_active <- subset_mining[subset_mining$Country != "South Africa", ]
+
+#active mines only
+subset_mining_active <- subset(subset_mining, Status %in% c("Producer"))
+
+#update coords for mauritania mine that showed up in the water
+subset_mining_active$latitude[subset_mining_active$mine_id == 195] <- 19.750000
+#flag spillover cases
+subset_mining_active$spillover <- subset_mining_active$mine_id %in% near_mines_32km$near_mines_32km
+
+#should I be worried about inactive mines in my dataset? // ultimately decided to exclude from analysis
+unique_status <- unique(subset_mining_active$Status)
+print(unique_status)
+
+unique_completion_yr <-unique(subset_mining_active$Project.Completion..Year.)
+print(unique_completion_yr)
+
+status_bymine <- aggregate(mine_id ~ Status + Project.Completion..Year., data = subset_mining_active, FUN = length)
+print(status_bymine)
+
+spillover_bymine <- aggregate(mine_id ~ spillover, data = subset_mining_active, FUN = length)
+print(spillover_bymine)
+
+#recreate DiD with this subset of mining projects
+library(sf)
+mining_sf <- st_as_sf(subset_mining_active, coords = c("longitude","latitude"), crs = 4326)
+
+# MG Edits: Make sure there's potential overlap:
+plot(st_geometry(acled_sf))
+plot(st_geometry(mining_sf), col = "red", add = T)
+
+# Add buffer around mining projects
+mining_buffered <- mining_sf %>%
+                   st_buffer(dist = units::set_units(64, "km"))
+
+# MG Edits: Buffering looks like it's working now.
+plot(st_geometry(acled_sf))
+plot(st_geometry(mining_buffered), col = "red", add = T, pch = 3)
+
+#join datasets
+joined_data <- st_join(acled_sf, mining_buffered, join = st_within, left = F)
+
+library(bacondecomp)
+library(dplyr)
+library(sf)
+
+joined_data <- st_as_sf(joined_data)
+joined_data <- joined_data %>% arrange(mine_id, year)
+
+#subset for demonstrations only
+#subset_joined_data <- joined_data[joined_data$sub_event_type %in% c("Peaceful protest", "Violent demonstration", "Excessive force against protestors"), ]
+project_inception_processing <- subset(subset_mining_active, select = c("mine_id", "Project.Inception..Year.", "Extent.of.Processing", "Country", "spillover"))
+
+# Aggregate data to get count of conflicts for each mine area and year
+
+agg_data <- joined_data %>%
+  group_by(mine_id, year) %>%
+  summarise(num_conflicts = n_distinct(event_id_cnty))
+
+agg_data <- agg_data %>% arrange(mine_id, year)
+
+library(tidyr)
+#transform to a dataframe
+agg_data_df <- as.data.frame(agg_data)
+
+
+#add missing years for mines with zero conflict in that year
+
+complete_data <- agg_data_df %>%
+  complete(mine_id, nesting(year)) %>%
+  mutate(num_conflicts = ifelse(is.na(num_conflicts), 0, num_conflicts))
+
+#generate a dataframe with mine_id and project inception year to fill in the treatment status of "missing" years
+project_inception_processing <- subset(subset_mining_active, select = c("mine_id", "Project.Inception..Year.", "Extent.of.Processing", "Country", "spillover"))
+
+#merge with the original dataframe
+merged_panel <- merge(complete_data, project_inception_processing, by = "mine_id")
+
+merged_panel$treatment <- ifelse(merged_panel$Extent.of.Processing == "refined" |
+                                  merged_panel$Extent.of.Processing=="processed"|
+                                  merged_panel$Extent.of.Processing=="smelted" & merged_panel$year >= merged_panel$Project.Inception..Year., 1, 0)
+
+#replacing the never treated mines with "0" for Project Inception Year (the "first treated" variable or group variable)
+merged_panel$Project.Inception..Year. <- ifelse(merged_panel$Extent.of.Processing == "refined" |
+                                  merged_panel$Extent.of.Processing=="processed"|
+                                  merged_panel$Extent.of.Processing=="smelted", merged_panel$Project.Inception..Year., 0)
+
+##CONTROLS
+#merged_panel <- merge(merged_panel, long_fdi, by = c("Country", "year"))
+#merged_panel <- merge(merged_panel, long_unemployment, by = c("Country", "year"))
+#merged_panel <- merge(merged_panel, long_gdppc, by = c("Country", "year"))
+
+#merged_panel <- merged_panel %>% arrange(mine_id, year)
+
+#control_vars <- c("FDI", "Unemployment_percent_labor_force", "GDP_per_capita")
+
+#subset merged_panel, excluding spillovers
+subset_merged_panel <- merged_panel[merged_panel$spillover == TRUE, ]
+
+#bacon decomposition
+
+df_bacon <- bacon(num_conflicts ~ treatment,
+                  data = merged_panel,
+                  id_var = "mine_id",
+                  time_var = "year")
+
+# estimate group-time average treatment effects using att_gt method
+library(did)
+mine_conflict_attgt <- att_gt(yname = "num_conflicts",
+                        tname = "year",
+                        idname = "mine_id",
+                        gname = "Project.Inception..Year.",
+                        data = subset_merged_panel)
+#check for neg weights
+# Extract the estimated weights
+weights <- mine_conflict_attgt$weights
+
+# Check if any of the weights are negative
+negative_weights <- any(weights < 0)
+
+if (negative_weights) {
+  print("Negative weights detected!")
+} else {
+  print("No negative weights detected.")
+}
+
+# summarize the results
+summary(mine_conflict_attgt)
+
+#estimate aggregated treatment effects
+mine_conflict_aggte <- aggte(mine_conflict_attgt, type = "dynamic", min_e = -10, max_e = 10)
+
+#summarize results
+summary(mine_conflict_aggte)
+
+#plot aggregated treatment effects
+ggdid(mine_conflict_aggte, title = " ", xlab ="Year from treatment", ylab="Annual number of conflicts")
+```
+Look again at the distribution of mines across centered treatment periods for this subset of mines
+```{r}
+# Identify treatment times
+
+unique_mines <- unique(merged_panel$mine_id)
+print(unique_mines)
+names(merged_panel)[5] <- "start"
+
+
+# Center the time variable relative to treatment start times
+merged_panel$centered_time <- ifelse(merged_panel$start==0, "na", merged_panel$year - merged_panel$start)
+
+
+#generate a table
+pre_post_bymine <- aggregate(mine_id ~ centered_time, data = merged_panel, FUN = length)
+
+pre_post_bymine$centered_time <- as.numeric(pre_post_bymine$centered_time)
+
+pre_post_bymine <- arrange(pre_post_bymine, centered_time)
+
+print(pre_post_bymine)
+
+subset_pre_post_bymine <- pre_post_bymine[pre_post_bymine$centered_time >= -10 & pre_post_bymine$centered_time <= 10, ]
+
+# lets make the table look nicer
+library(kableExtra)
+
+
+# Create a table with kableExtra and apply styling
+table <- kable(subset_pre_post_bymine, "html",
+               row.names = FALSE,  # Remove row numbers
+               col.names = c("Time from treatment", "Mine count"),  # Change column names
+               escape = FALSE)  # Prevent "na" values from showing as text
+
+# Apply additional styling to center column names
+table <- table %>%
+  kable_styling(bootstrap_options = c("striped", "hover"),  # Bootstrap styling
+                full_width = FALSE,  # Allow scrolling
+                latex_options = "hold_position",  # Hold table position in LaTeX
+                position = "center")  
+
+# Print the table
+print(table)
+
+#Does this reduced sample
+
+```
+whats the average level of conflict for treatment mines pre-treatment
+
+```{r}
+# 1. Define treatment and control groups
+treat_group <- subset(merged_panel, ever_treat == 1)
+
+# 2. Subset the data
+pre_treatment_data <- subset(treat_group, centered_time < 0)
+
+# 3. Calculate the average number of conflicts pre-treatment
+average_conflicts_pre_treatment <- mean(pre_treatment_data$num_conflicts)
+
+print(average_conflicts_pre_treatment)
+```
+
+Lets look at the frequency of conflict between treatment and control mines
+
+```{r}
+#gen an ever treated variable to distinguish between treated and control mines
+merged_panel$ever_treat <- ifelse(merged_panel$start ==0, 0, 1)
+
+# Load the ggplot2 library if not already loaded
+library(ggplot2)
+
+# Assuming 'merged_panel' is your dataframe containing the data
+
+# Aggregate data by year and mine type
+agg_data <- aggregate(num_conflicts ~ year + ever_treat, merged_panel, sum)
+
+# Recode the treatment variable to descriptive labels
+agg_data$ever_treat <- factor(agg_data$ever_treat, levels = c(0, 1), labels = c("Control", "Treated"))
+
+
+# Create bar plot
+ggplot(agg_data, aes(x = year, y = num_conflicts, fill = factor(ever_treat))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  # Set x-axis label
+  xlab("Year") +
+  # Set y-axis label
+  ylab("Number of Conflicts") +
+  # Set legend title and labels
+  labs(fill = "Mine Type") +
+  # Position legend
+  theme(legend.position = "top")
+
+```
+What are my unique countries?
+```{r}
+countries <-unique(mining_sf$Country)
+print(countries)
+```
+Conflict numbers in ACLED look skewed, as a robustness check im using an alternate datasource (UCPD) to see if this changes my results
+
+```{r ucpd}
+UCPD <- readRDS("C:/Users/yoshiara/OneDrive - RAND Corporation/Desktop/max's class/GEDEvent_v23_1.rds")
+conflict_year_ucpd <- table(UCPD$year)
+
+country_list <- c("Zimbabwe", "Gabon", "South Africa", "Ivory Coast", "Mozambique", "Namibia", "Guinea", "Tanzania", "Mali", "Lesotho", "Sierra Leone", "Ghana", "Democratic Republic of Congo", "Eritrea", "Zambia", "Angola", "Burkina Faso", "Malawi", "Botswana", "Mauritania", "Senegal", "Niger", "Liberia", "Madagascar")
+
+UCPD_1997_2023 <- UCPD[UCPD$year >= 1997 & UCPD$year <= 2023, ]
+
+subset_UCPD <- UCPD_1997_2023[UCPD_1997_2023$country %in% country_list, ]
+
+conflict_year_ucpd <- table(subset_UCPD$year)
+
+barplot(conflict_year_ucpd, 
+        main = "Number of Conflicts By Year", 
+        xlab = "Conflict Event Year", 
+        ylab = "Number of Conflicts",
+        col = "skyblue",
+        border = "black")
+
+ucpd_sf <- st_as_sf(UCPD, coords = c("longitude", "latitude"), crs = 4326)
+mining_sf <- st_as_sf(subset_mining_active, coords = c("longitude","latitude"), crs = 4326)
+
+# MG Edits: Make sure there's potential overlap:
+plot(st_geometry(ucpd_sf))
+plot(st_geometry(mining_sf), col = "red", add = T)
+
+# Add buffer around mining projects
+mining_buffered <- mining_sf %>%
+                   st_buffer(dist = units::set_units(32, "km"))
+
+# MG Edits: Buffering looks like it's working now.
+plot(st_geometry(ucpd_sf))
+plot(st_geometry(mining_buffered), col = "red", add = T, pch = 3)
+
+#join datasets
+joined_data <- st_join(ucpd_sf, mining_buffered, join = st_within, left = F)
+
+library(bacondecomp)
+library(dplyr)
+library(sf)
+
+joined_data <- st_as_sf(joined_data)
+joined_data <- joined_data %>% arrange(mine_id, year)
+
+
+# Aggregate data to get count of conflicts for each mine area and year
+
+agg_data <- joined_data %>%
+  group_by(mine_id, year) %>%
+  summarise(num_conflicts = n_distinct(id))
+
+agg_data <- agg_data %>% arrange(mine_id, year)
+
+library(tidyr)
+#transform to a dataframe
+agg_data_df <- as.data.frame(agg_data)
+
+
+#add missing years for mines with zero conflict in that year
+
+complete_data <- agg_data_df %>%
+  complete(mine_id, nesting(year)) %>%
+  mutate(num_conflicts = ifelse(is.na(num_conflicts), 0, num_conflicts))
+
+#generate a dataframe with mine_id and project inception year to fill in the treatment status of "missing" years
+project_inception_processing <- subset(subset_mining, select = c("mine_id", "Project.Inception..Year.", "Extent.of.Processing"))
+
+#merge with the original dataframe
+merged_panel <- merge(complete_data, project_inception_processing, by = "mine_id")
+
+merged_panel$treatment <- ifelse(merged_panel$Extent.of.Processing == "refined" |
+                                  merged_panel$Extent.of.Processing=="processed"|
+                                  merged_panel$Extent.of.Processing=="smelted" & merged_panel$year >= merged_panel$Project.Inception..Year., 1, 0)
+
+#replacing the never treated mines with "0" for Project Inception Year (the "first treated" variable or group variable)
+merged_panel$Project.Inception..Year. <- ifelse(merged_panel$Extent.of.Processing == "refined" |
+                                  merged_panel$Extent.of.Processing=="processed"|
+                                  merged_panel$Extent.of.Processing=="smelted", merged_panel$Project.Inception..Year., 0)
+
+#bacon decomposition
+
+df_bacon <- bacon(num_conflicts ~ treatment,
+                  data = merged_panel,
+                  id_var = "mine_id",
+                  time_var = "year")
+
+# estimate group-time average treatment effects using att_gt method
+library(did)
+mine_conflict_attgt <- att_gt(yname = "num_conflicts",
+                        tname = "year",
+                        idname = "mine_id",
+                        gname = "Project.Inception..Year.",
+                        data = merged_panel)
+              
+
+# summarize the results
+summary(mine_conflict_attgt)
 
 #estimate aggregated treatment effects
 mine_conflict_aggte <- aggte(mine_conflict_attgt, type = "dynamic", min_e = -10, max_e = 10)
@@ -417,10 +871,114 @@ summary(mine_conflict_aggte)
 ggdid(mine_conflict_aggte, title = "Event Study - High vs. Low Processing Project")
 
 ```
-Should I be worried about spillovers?
 
-```{r spillovers}
+Now let's add some control variables
+First is FDI
 
-joined_data_spillovers <- st_join(mining_sf, mining_buffered, join = st_within, left = F)
+```{r fdi}
+
+fdi <- read.csv("wb_fdi.csv")
+
+colnames(fdi) <- sub("^X", "", colnames(fdi))
+
+library(dplyr)
+fdi <- fdi %>%
+  mutate_at(vars(starts_with("1997"):starts_with("2022")), as.numeric)
+
+
+fdi <- fdi[, c("Country.Name",
+                              "1997", "1998", "1999", "2000", "2001", "2002", 
+                              "2003", "2004", "2005", "2006", "2007", "2008", 
+                              "2009", "2010", "2011", "2012", "2013", "2014", 
+                              "2015", "2016", "2017", "2018", "2019", "2020", 
+                              "2021", "2022")]
+
+library(tidyr)
+long_fdi <- pivot_longer(fdi, 
+                        cols = -Country.Name,  # Exclude the first column (Country) and pivot the rest
+                        names_to = "Year",  # Name of the new column for years
+                        values_to = "FDI")  # Name of the new column for values
+
+long_fdi <- long_fdi[long_fdi$Year >= 1997 & long_fdi$Year <= 2023, ]
+
+long_fdi <- long_fdi[long_fdi$Country.Name %in% country_list, ]
+
+long_fdi <- long_fdi %>%
+  rename(Country = Country.Name)
+
+long_fdi <- long_fdi %>%
+  rename(year = Year)
+```
+
+Next is unemployment
+
+```{r unemployment}
+unemployment <- read.csv("unemployment.csv")
+
+colnames(unemployment) <- sub("^X", "", colnames(unemployment))
+
+library(dplyr)
+unemployment <- unemployment %>%
+  mutate_at(vars(starts_with("1997"):starts_with("2022")), as.numeric)
+
+
+unemployment <- unemployment[, c("Country.Name",
+                              "1997", "1998", "1999", "2000", "2001", "2002", 
+                              "2003", "2004", "2005", "2006", "2007", "2008", 
+                              "2009", "2010", "2011", "2012", "2013", "2014", 
+                              "2015", "2016", "2017", "2018", "2019", "2020", 
+                              "2021", "2022")]
+
+library(tidyr)
+long_unemployment <- pivot_longer(unemployment, 
+                        cols = -Country.Name,  # Exclude the first column (Country) and pivot the rest
+                        names_to = "Year",  # Name of the new column for years
+                        values_to = "Unemployment_percent_labor_force")  # Name of the new column for values
+
+long_unemployment <- long_unemployment[long_unemployment$Year >= 1997 & long_unemployment$Year <= 2023, ]
+
+long_unemployment <- long_unemployment[long_unemployment$Country.Name %in% country_list, ]
+
+long_unemployment <- long_unemployment %>%
+  rename(Country = Country.Name)
+
+long_unemployment <- long_unemployment %>%
+  rename(year = Year)
+
+```
+Now lets do gdp per capita
+
+```{r gdppc}
+gdppc <- read.csv("gdppc.csv")
+
+colnames(gdppc) <- sub("^X", "", colnames(gdppc))
+
+library(dplyr)
+gdppc <- gdppc %>%
+  mutate_at(vars(starts_with("1997"):starts_with("2022")), as.numeric)
+
+
+gdppc <- gdppc[, c("Country.Name",
+                              "1997", "1998", "1999", "2000", "2001", "2002", 
+                              "2003", "2004", "2005", "2006", "2007", "2008", 
+                              "2009", "2010", "2011", "2012", "2013", "2014", 
+                              "2015", "2016", "2017", "2018", "2019", "2020", 
+                              "2021", "2022")]
+
+library(tidyr)
+long_gdppc <- pivot_longer(gdppc, 
+                        cols = -Country.Name,  # Exclude the first column (Country) and pivot the rest
+                        names_to = "Year",  # Name of the new column for years
+                        values_to = "GDP_per_capita")  # Name of the new column for values
+
+long_gdppc <- long_gdppc[long_gdppc$Year >= 1997 & long_gdppc$Year <= 2023, ]
+
+long_gdppc <- long_gdppc[long_gdppc$Country.Name %in% country_list, ]
+
+long_gdppc <- long_gdppc %>%
+  rename(Country = Country.Name)
+
+long_gdppc <- long_gdppc %>%
+  rename(year = Year)
 ```
 

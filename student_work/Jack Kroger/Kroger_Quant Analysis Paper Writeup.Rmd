@@ -2,7 +2,7 @@
 title: Understanding Disparities in Unemployment Insurance Takeup and Financial Behaviors
   of the Unemployed
 author: "Jack Kroger"
-date: "2024-03-02"
+date: "2024-03-04"
 output: pdf_document
 ---
 
@@ -20,21 +20,21 @@ library(randplot)
 
 ## Introduction
 
-Scarring impacts from periods of unemployment and job displacement are well documented. After an involuntary job separation, workers often struggle to find comparable employment opportunities. This results in lost wages that can take as long as a decade to recover to their pre-unemployment trend. Research has found that unemployment scarring effects tend to be worse for minority workers, younger workers, and workers in lower-wage jobs.
+Scarring impacts from periods of unemployment and job displacement are well documented (Arulampalam et al., 2001). After an involuntary job separation, workers often struggle to find comparable employment opportunities. This results in lost wages that can take as long as a decade to recover to their pre-unemployment trend. Research has found that unemployment scarring effects tend to be worse for minority workers, younger workers, and workers in lower-wage jobs.
 
-The main social protection for unemployed workers in the United States is federal and state unemployment insurance programs. These programs, administered by each state with some funding from the federal government, provide workers who meet certain work or income thresholds in the base period with temporary assistance while unemployed to help them smooth their consumption as they search for a new job. This assistance can be critical to give workers the liquidity they require to conduct thorough job searches and find a job that is comparable or better to their prior employment (Ganong et al., 2023).
+The main social protection for unemployed workers in the United States is federal and state unemployment insurance programs. These programs, administered by each state with some funding from the federal government, provide workers who meet certain work or income thresholds with temporary assistance while unemployed to help them smooth their consumption as they search for a new job. This assistance can be critical to give workers the liquidity they require to conduct thorough job searches and find a job that is comparable or better to their prior employment (Ganong et al., 2023).
 
-Unfortunately, recent research has shown that takeup and receipt of unemployment insurance are not equal in ways similar to the overall scarring effects of unemployment. Black workers are much less likely to receive unemployment compensation when laid off and eligible for it than white workers and receive lower benefit amounts on average if they do receive UC (Kuka and Stewart, 2021). Lower income workers are also less likely to receive UC than their higher income counterparts (Anderson and Meyer, 1997).
+Takeup and receipt of unemployment insurance are not equal in ways similar to the overall scarring effects of unemployment. Black workers are much less likely to receive unemployment compensation (UC) benefits when laid off and eligible for it than white workers and receive lower benefit amounts on average if they do receive UC (Kuka and Stewart, 2021). Lower income workers are also less likely to receive UC than their higher income counterparts (Anderson and Meyer, 1997).
 
-These inequalities are likely to have a strong impact on how lower income and Black workers are able to respond to job losses, with downstream consequences for wealth and income inequality. This project aims to examine the shorter-term mechanisms through which inequal access to UC may contribute to inequality. In short, it will examine the relationship between UC reciept for the unemployed and costly financial behaviors (use of alternative financial services, borrowing against retirement accounts, carrying high-cost debt, defaulting on loans, etc.). Ultimately the project will seek to 'cost' the inequality in UC for the system, predict retraining costs for affected workers, and provide policy ideas to increase UI takeup.
+These inequalities are likely to have a strong impact on how lower income and minority workers are able to respond to job losses, with downstream consequences for wealth and income inequality. This project aims to examine the shorter-term mechanisms through which unequal access to UC benefits may contribute to inequality. In short, it will examine the relationship between UC receipt for the unemployed and costly financial behaviors (use of alternative financial services, borrowing against retirement accounts, carrying high-cost debt, defaulting on loans, etc.) and how these behaviors vary for white and non-white unemployed workers. Ultimately, future work related to this analysis will seek to 'cost' the inequality in UC for the system, predict retraining costs for affected workers, and provide policy ideas to increase UI takeup.
 
 
 ## Data and Methods
 
-Data for this analysis comes from three main sources. The first is public microdata available through the 2022 version of the Census' Survey of Income and Program Participation (SIPP). The survey tracks behavior related social program participation, finances, and other factors monthly for four-year panels. The 2022 SIPP contains information on three separate panels for 2021 and has monthly data for 41,070 persons.
+Data for this analysis comes from three main sources. The first is public microdata available through the 2022 version of the Census' Survey of Income and Program Participation (SIPP). The survey tracks behavior related social program participation, finances, and other factors monthly for four-year panels. The 2022 SIPP contains information on three separate panels for 2021 and has monthly data for 41,070 persons, but I restrict the sample to look just for the main respondents who answer questions about household resources (n = 17144).
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
-#sipp = read_csv("Data/sipp 2022 consolidated.csv")
+sipp = read_csv("Data/sipp 2022 consolidated.csv")
 ```
 
 For the purposes of this analysis, I cleaned the data to examine yearly trends. I created variables for each respondent that indicated if they had been unemployed at any point in the year and if they had received unemployment compensation and the amount received. Doing so allows me to describe the amount of individuals who were unemployed in 2021 by race, which proportion of those workers received UC benefits, and the impact that receiving UC benefits has on debt outcomes and the likelihood of struggling with housing and utility payments. This is done through basic proportions and descriptive statistics as well as with logistic regression models where I control for demographic factors, education, income, state fixed-effects to remove the impact of policy variation and other covariates that are correlated both with race and UC receipt as well as with the other financial outcomes examined.
@@ -48,11 +48,12 @@ source("NFCS Data Cleaning and Merging.R")
 ```
 
 Finally, I constructed a rough database for state-level rules for qualifying for UC benefits in 2021 and 2022. This was merged on to the SIPP data to construct a rough estimate for eligibility for UC benefits among just the subsample who were confirmed to be laid off. It also tells its own story about where the policy barriers may be the highest to obtaining UC benefits given differences in construction of the base periods and high quarter and overall base period minimum wage requirements.
+
 ```{r, echo=FALSE, warning=FALSE, message=FALSE}
 policies = read_csv("Data/State Level UI Qualifying Rules.csv")
 ```
 
-These analyses are descriptive in nature. There is no variation in any of the policy instruments that may influence an individuals decision to apply for UC. Future work should attempt to look at policy variation in the type of workers covered, acceptance or early termination of federal UC expansion, and other policies for how the disproportionately impact different types of workers' likelihood to apply for and receive UC.
+These analyses are descriptive in nature. There is no variation in any of the policy instruments that may influence an individuals decision to apply for UC. Future work should attempt to look at policy variation in the type of workers covered, acceptance or early termination of federal UC expansion, and other policies for how they disproportionately impact different types of workers' likelihood to apply for and receive UC.
 
 
 
@@ -60,11 +61,46 @@ These analyses are descriptive in nature. There is no variation in any of the po
 
 ### Minority Workers More Likely to Be Unemployed, Less Likely to Receive Assistance
 
-[This is where I will add additional information on the SIPP analysis. I've done some, but have had more trouble getting this to work, given the code to process the annual data takes a while to run. I'm running this overnight and should have more to share here soon. But I'm already basically at the page limit without my overly large table, so I'll try to be concise.]
+After cleaning the SIPP data, we found that nearly half of the overall sample had a jobless period at any point in the year, but that a much smaller percentage reported that was due to a layoff. Nonetheless layoff rates were more than twice as high for Black individuals (3.3%) and Hispanic individuals (3.2%) than they were for white individuals (1.5%). These high figures of unemployed workers and low rate of layoffs are likely the impact of the Covid-19 policy environment where firms were incentivized to furlough workers rather than fire them. In the future, this work will attempt to replicate this analysis for other years where the policy environment should be more static. Nonetheless, when looking at just these laidoff workers, we find evidence in support of past research. Black households are about 14 percentage points less likely to receive UC benefits and only receive about half as much as white households on average.
+
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+unemployed_by_race = sipp %>% group_by(race) %>%
+  summarise(perc_unemployed = weighted.mean(unemployed, wpfinwgt))
+
+laidoff_by_race = sipp %>% group_by(race) %>%
+  summarise(perc_laidoff = weighted.mean(laidoff, wpfinwgt))
+
+sipp_unemployed = subset(sipp, unemployed==1)
+
+sipp_eligible = subset(sipp, eligible==1)
+
+sipp_laidoff = subset(sipp, laidoff==1)
+sipp_laidoff %>% group_by(race) %>%
+  summarise(percent_receive_uc = weighted.mean(ec_received, wpfinwgt),
+            mean_uc_amount = weighted.mean(ec_amount, wpfinwgt))
+```
+
+
+I also estimate the probability of receiving UC benefits and their amount with general linear models to test the significance of the relationships that we see here looking at all unemployed workers who we expect to be eligible for UC benefits in their state. We do not find significant differences by race in the receipt or amount of UC benefits after controlling for income, sex, education, age, marital status, and state. However, there are substantial limitations with the size of the dataset and clarity over why individuals were out of work that would help make these analysis more powerful going forward. Similarly, we do not find substantial evidence in our sample that receiving UC benefits reduced debt amounts relative to other workers who were away from work. Counterintuitively, I found that those receiving UC benefits were more likely to be unable to make a mortgage or utility period over the year.
+
+```{r, warning=FALSE, message=FALSE, echo=FALSE}
+#etable(feglm(ec_amount ~ race + log(income) + female + educ + tage + married | state, data = sipp_eligible, weights = sipp_eligible$wpfinwgt))
+
+model1 = feglm(totaldebt ~ ec_received + race + log(income) + female + educ + tage + married | state, data = sipp_eligible, weights = sipp_eligible$wpfinwgt)
+model2 = feglm(ccdebt ~ ec_received + race + log(income) + female + educ + tage + married | state, data = sipp_eligible, weights = sipp_eligible$wpfinwgt)
+model3 = feglm(unsecuredebt ~ ec_received + race + log(income) + female + educ + tage + married | state, data = sipp_eligible, weights = sipp_eligible$wpfinwgt)
+
+model4 = feglm(mortgage ~ ec_received + race + log(income) + female + educ + tage + married | state, data = sipp_eligible, family = 'binomial', weights = sipp_eligible$wpfinwgt)
+model5 = feglm(utility ~ ec_received + race + log(income) + female + educ + tage + married | state, data = sipp_eligible, family = 'binomial', weights = sipp_eligible$wpfinwgt)
+
+etable(model1, model2, model3, model4, model5)
+```
+
 
 ### Non-White Unemployed Workers Are More Likely to Use Alternative Financial Services
 
-In addition to takeup of UC benefits, I am also interested in examining how unemployed workers attempt to smooth their consumption and . If disproportionately reliant on high-cost means of making ends meet while unemployed, these workers will struggle more to conduct a thorough job search and rebuild their financial security and overall wealth after they find a job. Analysis of the four waves of the NFCS survey found substantial differences in financial behaviors exhibited by white and non-white unemployed workers (see Figure # below). In particular, non-white workers are much more likely to use alternative financial services like payday and auto title loans, make late credit card payments and only pay their minimum, make a late mortgage payment, and borrow from their retirement account. Other behaviors, like carrying any credit card balance, believing they have too much debt, being contacted by collections, and making late student debt payments do not appear to vary substantially by race.
+In addition to takeup of UC benefits, I am also interested in examining how unemployed workers attempt to smooth their consumption and conduct a job search while unemployed. If disproportionately reliant on high-cost means of making ends meet while unemployed, these workers will struggle more to conduct a thorough job search and rebuild their financial security and overall wealth after they find a job. Analysis of the four waves of the NFCS survey found substantial differences in financial behaviors exhibited by white and non-white unemployed workers (see Figure below). In particular, non-white workers are much more likely to use alternative financial services like payday and auto title loans, make late credit card payments and only pay their minimum, make a late mortgage payment, and borrow from their retirement account. Other behaviors, like carrying any credit card balance, believing they have too much debt, being contacted by collections, and making late student debt payments do not appear to vary substantially by race.
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 table = nfcs_unemp %>%
@@ -121,9 +157,9 @@ ggplot(graph, aes(x = variable, y = value, fill = race, label=scales::percent(va
         panel.grid.major.x = element_blank())
 ```
 
-The regression analysis here found that most of the differences could be explained by differences in education, income, or another covariate correlated with both race and financial insecurity. However, there were significant differences between white and non-white respondents for their likelihood of using alternative financial services, overdrawing a bank account, and making a late credit card payment. All of these challenges highlight substantial liquidity constraints for minority workers when unemployed, pushing them toward very costly financing services from industries that have historically targeted lower-income and minority communities. 
+The regression analysis here found that most of the differences could be explained by differences in education, income, or other covariates correlated with both race and financial insecurity. However, there were significant differences between white and non-white respondents for their likelihood of using alternative financial services, overdrawing a bank account, and making a late credit card payment. This highlights substantial liquidity constraints for minority workers when unemployed, pushing them toward very costly financing services from industries that have historically targeted lower-income and minority communities. 
 
-After also controlling for state fixed effects (see Table below), the only differences by race that are still statistically significant are those for taking a payday loan and making a late credit card payment. These results suggest that white unemployed workers are only 77% as likely to to use a payday loan provider's services and 83% as likely to be late on a credit card payment as non-white workers after controlling for income, education, age, and state and year effects. This indicates that there are likely policy differences in UC benefits and other social safety net programs that could be making the difference and account for some of the differences for different races.
+After also controlling for state fixed effects (see Table below), the only differences by race that are still statistically significant are those for taking a payday loan and making a late credit card payment. These results indicate that white unemployed workers are only 77% as likely to to use a payday loan provider's services and 83% as likely to be late on a credit card payment as non-white workers after controlling for income, education, age, and state and year effects. Policies that vary across states like UC benefit rules may therefore explain some of the difference in financial behaviors for the unemployed, but do not explain all of it.
 
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 est1 = feglm(payday ~ race + income + sex + educ + agegroup | state + year, 
@@ -194,10 +230,12 @@ grid.arrange(map1, map2, nrow = 2)
 
 This analysis lends further evidence to research that has demonstrated that racial disparities exist in UC takeup and receipt. Additionally, it shows that the lost income has substantial costs for workers who carry more debt on average and are more likely to turn to high-cost options for liquidity when unemployed such as carrying credit card balances and using alternative financial services.
 
-While differences in the financial behaviors of white and non-white unemployed workers can be explained in part by differences in financial circumstances, education, and other factors, some disparities still remained. Even after controlling for state fixed-effects that should account for most unemployment-related policies over the period of the analysis, non-white uenmployed workers were still much more likely to make late credit card payments and secure loans from payday lenders. This suggests that greater efforts are needed to understand what may be driving those trends and what policies may help to reduce reliance of unemployed workers on costly debt solutions that hinder their ability to build wealth in the future. Additional research should explore the ability of more widespread UC benefits to help accomplish this goal.
+While differences in the financial behaviors of white and non-white unemployed workers can be explained in part by differences in financial circumstances, education, and other factors, some disparities still remained. Even after controlling for state fixed-effects that should account for most unemployment-related policies over the period of the analysis, non-white unemployed workers were still much more likely to make late credit card payments and secure loans from payday lenders. This suggests that greater efforts are needed to understand what may be driving those trends and what policies may help to reduce reliance of unemployed workers on costly debt solutions that hinder their ability to build wealth in the future. Additional research should explore the ability of more widespread UC benefits to help accomplish this goal.
 
 
 ## Sources
+
+Arulampalam, W., Gregg, P., & Gregory, M. 2001. Introduction: Unemployment Scarring. The Economic Journal, 111(475), F577–F584. http://www.jstor.org/stable/798306
 
 Anderson, Patricia, and Bruce Meyer. 1997. “Unemployment Insurance Takeup Rates and the After-Tax Value of Benefits.” The Quarterly Journal of Economics, 112:2 913-937.
 
